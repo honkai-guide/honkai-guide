@@ -114,6 +114,8 @@
 
         <h2 class="section-head">Changelog</h2>
         <ul>
+          <li>2026/06/07 - Added Book of Fuxi ELF, Sirin ELF, Wings of Panacea Seele - Darius</li>
+          <li>2026/05/18 - Added Bailu Youyun Astral Op - Darius</li>
           <li>2026/03/21 - Added Frost weather in modifiers - Darius</li>
           <li>2026/03/04 - Added Rice Cake and Dawnbearing Crescent - Darius</li>
           <li>2026/01/05 - Added Marut and Miss Espionage - Darius</li>
@@ -168,19 +170,19 @@
             will ever fix the incorrect spelling in game: "Meteroid"? - Darius
           </li>
           <li>2024/05/05 - Added Mobius boss and Lantern. - Darius</li>
-          <li>
-            2024/03/21 - Added Beast of Sacrifice (Duonigue) and Raven bosses, added Thelema
-            valkyrie. - Darius
-          </li>
-          <li>
-            2024/03/01 - Added new search term for Flower boss, and added search terms for the
-            Astral Ring weather SD mobs, Symphony weather SD mobs, and Stardust weather SD mobs.
-            Added Helia and Coralie individual valks. 4.4 and after valkyries will now have
-            battlesuit name, abbreviation, and character name, to make it easier for some players to
-            find them. Example: Deepspace Anchor: First Light (FL, Senadina) 4.3 and below valkyries
-            will also be updated to the same format, but in a future update. - Darius
-          </li>
           <!-- older changelog
+            <li>
+              2024/03/21 - Added Beast of Sacrifice (Duonigue) and Raven bosses, added Thelema
+              valkyrie. - Darius
+            </li>
+            <li>
+              2024/03/01 - Added new search term for Flower boss, and added search terms for the
+              Astral Ring weather SD mobs, Symphony weather SD mobs, and Stardust weather SD mobs.
+              Added Helia and Coralie individual valks. 4.4 and after valkyries will now have
+              battlesuit name, abbreviation, and character name, to make it easier for some players to
+              find them. Example: Deepspace Anchor: First Light (FL, Senadina) 4.3 and below valkyries
+              will also be updated to the same format, but in a future update. - Darius
+            </li>
             <li>
               2024/02/05 - BIG UPDATE! Added Herrscher Trio, Senadina Trio, Senadina standalone, ELFs
               (Blade Durandal and newer only), and Collaborators. Helia and Coralie do not have
@@ -567,7 +569,10 @@ const valkToChinese = {
   "Hi Love Elf (*HLE, Hi Love Elf, Elysia)": ["爱愿妖精", "爱"],
   "Miss Espionage (*ME, Rita)": ["丽"],
   "Xentinel Dawnbearing Crescent (*XDC, *DC, Mei)": ["芽"],
+  "Wings of Panacea (*WP, Seele)": ["希"],
   // ELFs & Collaborators
+  "Book of Fuxi (**Fuxi, ELF)": ["星苍玄"],
+  "Sirin (**Sirin, ELF)": ["星西琳"],
   "Blade Durandal (**BD, **Dudu, ELF)": ["星幽"],
   "Elf Elysia (**Ely, ELF)": ["星爱"],
   "Kiana Kaslana (**Kiana, ELF)": ["星琪"],
@@ -577,6 +582,7 @@ const valkToChinese = {
   "Serapeum (**Sera, Astral Op)": ["瑟拉"],
   "Theresa Apocalypse (**Teri, Astral Op)": ["德"],
   "Chenxue (**Chen, Astral Op)": ["晨雪"],
+  "Bailu Youyun (**Youyun, Astral Op)": ["游云"],
 };
 
 const modifiersToChinese = {
