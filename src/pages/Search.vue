@@ -65,6 +65,13 @@
             :items="valks"
           ></v-autocomplete>
 
+          <v-checkbox
+            v-model="allS0Plus1"
+            hide-details
+            class="mt-2"
+            label="Use All S0+1 search term instead of individual valkyrie ranks & refines (this will override individual valkyrie settings)"
+          ></v-checkbox>
+
           <div v-for="(row, i) in valkRows" :key="row.valk" class="d-flex align-center flex-wrap mt-2">
             <span class="valk-label mr-3">{{ ordinals[i] }} Valkyrie</span>
             <template v-if="row.ranks.length">
@@ -92,14 +99,6 @@
             </template>
             <v-btn v-else disabled variant="outlined" density="comfortable" class="rank-na">N/A</v-btn>
           </div>
-
-          <v-checkbox
-            v-if="showAllS0Plus1"
-            v-model="allS0Plus1"
-            hide-details
-            class="mt-2"
-            label="Use 'All S0+1' search term instead of individual valkyrie ranks"
-          ></v-checkbox>
 
           <h3 class="section-head">ELF / Astral Op</h3>
           <v-autocomplete
@@ -342,7 +341,7 @@ export default defineComponent({
         selectedValks: this.selectedValks,
         valkRanks: this.valkRanks,
         valkRefines: this.valkRefines,
-        allS0Plus1: this.useAllS0Plus1,
+        allS0Plus1: this.allS0Plus1,
         selectedCompanion: this.selectedCompanion[0] ?? null,
         companionRank: this.companionRank ?? null,
         score: this.score,
@@ -364,19 +363,6 @@ export default defineComponent({
         ranks: valkRanksFor(valk),
         refines: valkRefinesFor(valk),
       }));
-    },
-    // The "All S0+1" shortcut is only offered when all three valks support ranks + refines.
-    showAllS0Plus1(): boolean {
-      return (
-        this.selectedValks.length === 3 &&
-        this.selectedValks.every(
-          (valk) => valkRanksFor(valk).length > 0 && valkRefinesFor(valk).length > 0
-        )
-      );
-    },
-    // Applies only while the checkbox is both available and checked.
-    useAllS0Plus1(): boolean {
-      return this.showAllS0Plus1 && this.allS0Plus1;
     },
     // Score dropdown values for the currently selected mode (SS / SSS / SSS +20%).
     scores(): (number | string)[] {
