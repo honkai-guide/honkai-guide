@@ -1,7 +1,8 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-row>
-      <v-col cols="12">
+      <!-- Left: the form. Right column holds the live-updating links. -->
+      <v-col cols="12" md="7" lg="8">
         <h1>Bilibili search generator</h1>
         <!--
           Hidden, but kept to credit the Chinese translation sources.
@@ -69,7 +70,7 @@
             v-model="allS0Plus1"
             hide-details
             class="mt-2"
-            label="Use All S0+1 search term instead of individual valkyrie ranks & refines (this will override individual valkyrie settings)"
+            label="Use &quot;all S0+1&quot; search term instead of individual valkyrie ranks & syngergy (this will override individual valkyrie settings)"
           ></v-checkbox>
 
           <div v-for="(row, i) in valkRows" :key="row.valk" class="d-flex align-center flex-wrap mt-2">
@@ -171,19 +172,29 @@
           ></v-combobox>
         </v-form>
 
-        <h2 class="section-head">Generated links</h2>
-        <div class="d-flex align-center">
-          <img class="valk-gif mr-2" :src="brnGif" />
-          <span>Bronya works hard to instantly generate links as you type.</span>
-        </div>
-        <p>Some bosses/valks go by multiple names, so try all links!</p>
-        <ul class="link-list">
-          <li v-for="link in biliLinks" :key="link" class="mb-3">
-            <a target="_blank" :href="link">{{ displayLink(link) }}</a>
-          </li>
-        </ul>
-
         <Changelog></Changelog>
+      </v-col>
+
+      <!-- Right: sticky results panel so links stay visible while the form is edited. -->
+      <v-col cols="12" md="5" lg="4">
+        <div class="link-panel">
+          <h2 class="link-panel-head">Generated links</h2>
+          <div class="d-flex align-center">
+            <img class="valk-gif mr-2" :src="brnGif" />
+            <span>Bronya works hard to instantly generate links as you type.</span>
+          </div>
+          <p class="mt-2 mb-2">Some bosses/valks go by multiple names, so try all links!</p>
+          <div class="link-scroll">
+            <ul class="link-list">
+              <li v-for="link in biliLinks" :key="link" class="mb-3">
+                <a target="_blank" :href="link">{{ displayLink(link) }}</a>
+              </li>
+            </ul>
+            <p v-if="!biliLinks.length" class="text-medium-emphasis">
+              Make some selections to generate links!
+            </p>
+          </div>
+        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -200,7 +211,60 @@
 
 .link-list {
   padding-left: 1.5rem;
-  font-size: 1.5em;
+  font-size: 1.15em;
+  // Keyword strings are long and the panel is narrow; wrap rather than overflow.
+  overflow-wrap: anywhere;
+}
+
+// Results panel: pinned beside the form (md+) so links stay on screen while
+// the user edits. The column stretches to the row's height, which is what
+// gives `position: sticky` room to travel.
+//
+// Sticky offsets are measured from the viewport, not from v-main, so the pinned
+// panel has to clear App.vue's fixed 64px v-app-bar — with a smaller offset its
+// top slides under the bar as soon as the page scrolls. The height cap has to
+// subtract the same 64px (plus the top/bottom gaps) or the panel overshoots the
+// bottom of the screen and grows an inner scrollbar it doesn't need.
+$app-bar-height: 64px;
+$panel-gap: 16px;
+
+.link-panel {
+  position: sticky;
+  top: $app-bar-height + $panel-gap;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+  max-height: calc(100vh - #{$app-bar-height + $panel-gap * 2});
+  display: flex;
+  flex-direction: column;
+}
+
+.link-panel-head {
+  margin-bottom: 0.5rem;
+}
+
+// Only scrolls once the list genuinely outgrows the panel.
+.link-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+// The last item's margin counts toward the scroll height, which is enough on
+// its own to make a list that otherwise fits look scrollable.
+.link-list li:last-child {
+  margin-bottom: 0 !important;
+}
+
+// Stacked layout on small screens: no pinning, no inner scroll container.
+@media (max-width: 959px) {
+  .link-panel {
+    position: static;
+    max-height: none;
+  }
+
+  .link-scroll {
+    overflow-y: visible;
+  }
 }
 
 .valk-gif {
@@ -260,10 +324,19 @@
   font-weight: 600;
 }
 
+// Fixed 4-column grid. `minmax(0, 1fr)` (rather than `1fr`, whose implicit
+// minimum is auto) lets long labels wrap instead of widening their column.
 .modifier-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 0.75rem;
+}
+
+// 4 across is unreadable once the form column is full-width; step it down.
+@media (max-width: 959px) {
+  .modifier-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>
 
