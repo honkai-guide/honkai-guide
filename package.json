@@ -10,7 +10,7 @@
   "dependencies": {
     "@vuejs-community/vue-filter-date-format": "^1.6.3",
     "core-js": "^3.14.0",
-    "firebase": "^9.9.1",
+    "firebase": "^9.23.0",
     "vue": "^2.6.13",
     "vue-gtag": "^1.16.1",
     "vue-router": "^3.5.1",
@@ -58,7 +58,9 @@
       "parser": "@typescript-eslint/parser",
       "ecmaVersion": 2020
     },
-    "ignorePatterns": ["/src/assets/3rdguide.user.js"]
+    "ignorePatterns": [
+      "/src/assets/3rdguide.user.js"
+    ]
   },
   "browserslist": [
     "> 1%",
