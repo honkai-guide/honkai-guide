@@ -1,10 +1,15 @@
-import Vue from "vue";
-import Vuetify from "vuetify/lib";
+import "vuetify/styles";
+import { createVuetify } from "vuetify";
+import { aliases, mdi } from "vuetify/iconsets/mdi";
 
-Vue.use(Vuetify);
-
-export default new Vuetify({
+// Vuetify 3 configuration. Icons use the mdi font, which is loaded via CDN in index.html.
+export default createVuetify({
   theme: {
-    dark: true,
+    defaultTheme: "dark",
+  },
+  icons: {
+    defaultSet: "mdi",
+    aliases,
+    sets: { mdi },
   },
 });

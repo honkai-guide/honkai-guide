@@ -1,43 +1,25 @@
 const pointsPerSecondSS = 53 + 1 / 3;
-const pointsPerSecondBase = 13 + 1 / 3;
-//const pointsPerSecondUp = 16;
+const pointsPerSecondSSS = 13 + 1 / 3;
+const pointsPerSecondSSSUp = 16;
 
-class ScoresByTime {
-  ssScore: number;
-  base: number;
-  up: number;
-  elapsedSec: number;
-}
+type ScoreMode = "SS" | "SSS" | "SSS +20%";
 
-function generateScores(seconds: number): ScoresByTime[] {
-  const scoresByTime = [];
+// Starting raw score and per-second decay for each rank mode.
+const scoreConfig: Record<ScoreMode, { rawStart: number; pointsPerSecond: number }> = {
+  SS: { rawStart: 32000, pointsPerSecond: pointsPerSecondSS },
+  SSS: { rawStart: 40000, pointsPerSecond: pointsPerSecondSSS },
+  "SSS +20%": { rawStart: 48000, pointsPerSecond: pointsPerSecondSSSUp },
+};
+
+// Memorial Arena score thresholds for the first 45 seconds, in the given mode.
+function generateScores(mode: ScoreMode): number[] {
+  const seconds = 45;
+  const { rawStart, pointsPerSecond } = scoreConfig[mode];
+  const scores: number[] = [];
   for (let i = 0; i < seconds; i += 1) {
-    const ssScoreRaw = 32000 - pointsPerSecondSS * (i + 1);
-    const ssScore = Math.floor(ssScoreRaw);
-
-    const baseRaw = 40000 - pointsPerSecondBase * (i + 1);
-    const base = Math.floor(baseRaw);
-    const up = Math.round(baseRaw * 1.2);
-
-    scoresByTime.push({
-      ssScore: ssScore,
-      base: base,
-      up: up,
-      elapsedSec: i,
-    });
+    scores.push(Math.floor(rawStart - pointsPerSecond * (i + 1)));
   }
-  return scoresByTime;
+  return scores;
 }
 
-function countdownSecondsFilter(elapsedSecStr: string): string {
-  const elapsedSec = 300 - parseInt(elapsedSecStr);
-  const minutes = Math.floor(elapsedSec / 60);
-  const seconds = (elapsedSec - minutes * 60) % 60;
-
-  const dMins = minutes > 9 ? minutes : "0" + minutes;
-  const dSecs = seconds > 9 ? seconds : "0" + seconds;
-
-  return dMins + ":" + dSecs;
-}
-
-export { generateScores, countdownSecondsFilter };
+export { generateScores };

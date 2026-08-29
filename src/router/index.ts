@@ -1,14 +1,5 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
-const GearComparison = () => import("../pages/GearComparison.vue");
+import { createRouter, createWebHistory } from "vue-router";
 const Search = () => import("../pages/Search.vue");
-const Scores = () => import("../pages/Scores.vue");
-const AffixComparison = () => import("../pages/AffixComparison.vue");
-const MemorialLineups = () => import("../pages/MemorialLineups.vue");
-const AbyssLineups = () => import("../pages/AbyssLineups.vue");
-const PGRSearch = () => import("../pages/PGRSearch.vue");
-
-Vue.use(VueRouter);
 
 const routes = [
   {
@@ -16,39 +7,10 @@ const routes = [
     name: "home",
     component: Search,
   },
-  {
-    path: "/calc",
-    name: "calc",
-    component: GearComparison,
-  },
-  {
-    path: "/affix_compare",
-    name: "affix_compare",
-    component: AffixComparison,
-  },
-  {
-    path: "/scores",
-    name: "scores",
-    component: Scores,
-  },
-  {
-    path: "/memorial_lineups",
-    name: "memorial_lineups",
-    component: MemorialLineups,
-  },
-  {
-    path: "/abyss_lineups",
-    name: "abyss_lineups",
-    component: AbyssLineups,
-  },
-  {
-    path: "/pgr_search",
-    name: "pgr_search",
-    component: PGRSearch,
-  },
 ];
 
-const router = new VueRouter({
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 
