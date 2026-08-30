@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import Search from "@/pages/Search.vue";
 
 // Search.vue is an Options API component, so its methods, computeds and watchers are
@@ -40,7 +40,7 @@ describe("displayLink", () => {
     );
   });
 
-  it("decodes a rank refine's encoded + too", () => {
+  it("decodes a rank synergy's encoded + too", () => {
     expect(display("https://search.bilibili.com/all?keyword=S1%2B1终&order=pubdate")).toBe(
       "S1+1终"
     );
@@ -199,16 +199,16 @@ describe("valkyrie selection rules", () => {
     expect(vm.selectedValks).toEqual([teamName!]);
   });
 
-  it("prunes rank and refine state for deselected valks", () => {
+  it("prunes rank and synergy state for deselected valks", () => {
     const [kept, dropped] = plainValks;
     const vm = instance({
       selectedValks: [kept],
       valkRanks: { [kept]: "S1", [dropped]: "S3" },
-      valkRefines: { [kept]: "+1", [dropped]: "+2" },
+      valkSynergies: { [kept]: "+1", [dropped]: "+2" },
     });
     watchers.selectedValks.call(vm, [kept], [kept, dropped]);
     expect(vm.valkRanks).toEqual({ [kept]: "S1" });
-    expect(vm.valkRefines).toEqual({ [kept]: "+1" });
+    expect(vm.valkSynergies).toEqual({ [kept]: "+1" });
   });
 
   it("does not prune when the selection is rejected", () => {
@@ -279,6 +279,48 @@ describe("score mode", () => {
   });
 });
 
+describe("ranks & synergies modes", () => {
+  const valkNames: string[] = options.data().valks;
+  const valk = valkNames.find((v) => !v.includes("Trio"))!;
+
+  // The rank buttons are hidden unless "assign individually" is ticked, so their values
+  // must not reach the search either — otherwise a hidden pick silently alters the links.
+  it("passes no ranks or synergies while the individual mode is off", () => {
+    const vm = instance({
+      individualRanks: false,
+      valkRanks: { [valk]: "S1" },
+      valkSynergies: { [valk]: "+1" },
+    });
+    expect(computed.effectiveValkRanks.call(vm)).toEqual({});
+    expect(computed.effectiveValkSynergies.call(vm)).toEqual({});
+  });
+
+  it("passes the picked ranks and synergies while the individual mode is on", () => {
+    const vm = instance({
+      individualRanks: true,
+      valkRanks: { [valk]: "S1" },
+      valkSynergies: { [valk]: "+1" },
+    });
+    expect(computed.effectiveValkRanks.call(vm)).toEqual({ [valk]: "S1" });
+    expect(computed.effectiveValkSynergies.call(vm)).toEqual({ [valk]: "+1" });
+  });
+
+  // Unticking hides the buttons but keeps the picks, so re-ticking restores them.
+  it("keeps the underlying picks when the mode is switched off", () => {
+    const vm = instance({
+      individualRanks: false,
+      valkRanks: { [valk]: "S1" },
+    });
+    expect(vm.valkRanks).toEqual({ [valk]: "S1" });
+  });
+
+  it("starts with both modes off", () => {
+    const data = options.data();
+    expect(data.allS0Plus1).toBe(false);
+    expect(data.individualRanks).toBe(false);
+  });
+});
+
 describe("valkRows", () => {
   it("returns one row per selected valk, in order", () => {
     const valkNames: string[] = options.data().valks;
@@ -287,7 +329,7 @@ describe("valkRows", () => {
     expect(rows.map((r: any) => r.valk)).toEqual(picked);
     for (const row of rows) {
       expect(Array.isArray(row.ranks)).toBe(true);
-      expect(Array.isArray(row.refines)).toBe(true);
+      expect(Array.isArray(row.synergies)).toBe(true);
     }
   });
 
@@ -296,13 +338,55 @@ describe("valkRows", () => {
   });
 });
 
+describe("the date filter on mobile", () => {
+  // showDateFilter reads navigator.userAgent, so these need a window to sniff.
+  const setUserAgent = (ua: string) => {
+    (globalThis as any).window = { navigator: { userAgent: ua } };
+  };
+  const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
+  const MOBILE_UA = "Mozilla/5.0 (Linux; Android 14) Mobile Safari/537.36";
+
+  afterEach(() => delete (globalThis as any).window);
+
+  // Bilibili only honours pubtime_begin_s/pubtime_end_s on its desktop search, so the
+  // checkbox is hidden rather than offered as a silent no-op.
+  it("offers the checkbox on desktop", () => {
+    setUserAgent(DESKTOP_UA);
+    expect(computed.showDateFilter.call(instance())).toBe(true);
+  });
+
+  it("hides the checkbox on mobile", () => {
+    setUserAgent(MOBILE_UA);
+    expect(computed.showDateFilter.call(instance())).toBe(false);
+  });
+
+  // Belt and braces: even if filterByDate were somehow true on a phone, the filter must
+  // not be applied, because m.bilibili.com and the app both drop the params.
+  it("never applies the filter on mobile, even if the flag is set", () => {
+    setUserAgent(MOBILE_UA);
+    const vm = instance({ filterByDate: true });
+    expect(computed.useDateFilter.call({ ...vm, showDateFilter: false })).toBe(false);
+  });
+
+  it("applies the filter on desktop when the box is checked", () => {
+    setUserAgent(DESKTOP_UA);
+    expect(computed.useDateFilter.call({ ...instance({ filterByDate: true }), showDateFilter: true })).toBe(
+      true
+    );
+  });
+});
+
 describe("dateRangeLabel", () => {
   it("is null while the date filter is off, which hides the alert", () => {
-    expect(computed.dateRangeLabel.call(instance({ filterByDate: false }))).toBeNull();
+    expect(computed.dateRangeLabel.call(instance({ useDateFilter: false }))).toBeNull();
   });
 
   it("returns a formatted CN date range when the filter is on", () => {
-    const label = computed.dateRangeLabel.call(instance({ filterByDate: true }));
+    const label = computed.dateRangeLabel.call(instance({ useDateFilter: true }));
     expect(label).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{4} – [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+  });
+
+  it("is null on mobile even with the flag set, so the banner never shows there", () => {
+    expect(computed.dateRangeLabel.call(instance({ useDateFilter: false, filterByDate: true }))).toBeNull();
   });
 });

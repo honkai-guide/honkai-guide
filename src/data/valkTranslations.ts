@@ -135,7 +135,7 @@ export const valkToChinese = {
       "SS3": ["SS3"],
       "SSS": ["SSS"],
     },
-    "refines": {
+    "synergies": {
       "+1": ["+1"],
       "+2": ["+2"],
       "+3": ["+3"],

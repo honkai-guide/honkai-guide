@@ -44,9 +44,13 @@
             v-model="sssBoss"
             hide-details
             @update:model-value="$event && (filterByDate = false)"
-            label="Memorial Arena - SSS Boss? (Tip: Some SSS MA videos might only show up when this is checked, so try both!)"
+            label="Memorial Arena - SSS Boss (Tip: Some SSS MA videos might only show up when this is checked, so try both!)"
           ></v-checkbox>
+          <!-- Hidden on mobile: the date params are a desktop-web-search feature, so
+               m.bilibili.com drops them and the mobile app captures the link and runs its
+               own search. Offering the checkbox there would just silently do nothing. -->
           <v-checkbox
+            v-if="showDateFilter"
             v-model="filterByDate"
             hide-details
             @update:model-value="$event && (sssBoss = false)"
@@ -66,40 +70,73 @@
             :items="valks"
           ></v-autocomplete>
 
-          <v-checkbox
-            v-model="allS0Plus1"
-            hide-details
-            class="mt-2"
-            label="Use &quot;all S0+1&quot; search term instead of individual valkyrie ranks & syngergy (this will override individual valkyrie settings)"
-          ></v-checkbox>
-
-          <div v-for="(row, i) in valkRows" :key="row.valk" class="d-flex align-center flex-wrap mt-2">
-            <span class="valk-label mr-3">{{ ordinals[i] }} Valkyrie</span>
-            <template v-if="row.ranks.length">
-              <v-btn-toggle
-                v-model="valkRanks[row.valk]"
-                class="rank-toggle"
-                density="comfortable"
-                variant="outlined"
-              >
-                <v-btn v-for="rank in row.ranks" :key="rank" :value="rank">{{ rank }}</v-btn>
-              </v-btn-toggle>
-              <template v-if="row.refines.length">
-                <span class="mx-3">|</span>
+          <h3 class="section-head">Ranks &amp; Synergies</h3>
+          <!-- The two modes are mutually exclusive, but neither is required: checking one
+               clears the other, and leaving both unchecked is a valid state. Same inline
+               pattern as the SSS Boss / date filter pair above. -->
+          <!-- flex-grow-0 on each: a v-checkbox is a v-input, which defaults to
+               `flex: 1 1 auto` and would otherwise stretch to split the row in half. -->
+          <div class="d-flex align-center flex-wrap ga-6 mt-2">
+            <v-checkbox
+              v-model="allS0Plus1"
+              hide-details
+              class="flex-grow-0"
+              @update:model-value="$event && (individualRanks = false)"
+              label="All S0+1"
+            ></v-checkbox>
+            <v-checkbox
+              v-model="individualRanks"
+              hide-details
+              class="flex-grow-0"
+              @update:model-value="$event && (allS0Plus1 = false)"
+              label="Assign ranks and synergies individually"
+            ></v-checkbox>
+          </div>
+          <!-- The per-valk rows belong to the "individually" mode only. The rows are keyed
+               off the valkyrie selection above, so prompt for that when it's still empty —
+               and only once there is something to assign is the syntax caveat worth showing. -->
+          <template v-if="individualRanks">
+            <p v-if="!valkRows.length" class="text-medium-emphasis mt-2">
+              To assign ranks and synergies, select a valkyrie first!
+            </p>
+            <p v-else class="text-body-2 text-medium-emphasis mt-1 mb-0">
+              Note: Some videos use non-standard syntax (e.g. 6S+9, 7S+8, 9S) and won't match
+              these selections
+            </p>
+            <div
+              v-for="(row, i) in valkRows"
+              :key="row.valk"
+              class="d-flex align-center flex-wrap mt-2"
+            >
+              <span class="valk-label mr-3">{{ ordinals[i] }} Valkyrie</span>
+              <template v-if="row.ranks.length">
                 <v-btn-toggle
-                  v-model="valkRefines[row.valk]"
+                  v-model="valkRanks[row.valk]"
                   class="rank-toggle"
                   density="comfortable"
                   variant="outlined"
                 >
-                  <v-btn v-for="refine in row.refines" :key="refine" :value="refine">
-                    {{ refine }}
-                  </v-btn>
+                  <v-btn v-for="rank in row.ranks" :key="rank" :value="rank">{{ rank }}</v-btn>
                 </v-btn-toggle>
+                <template v-if="row.synergies.length">
+                  <span class="mx-3">|</span>
+                  <v-btn-toggle
+                    v-model="valkSynergies[row.valk]"
+                    class="rank-toggle"
+                    density="comfortable"
+                    variant="outlined"
+                  >
+                    <v-btn v-for="synergy in row.synergies" :key="synergy" :value="synergy">
+                      {{ synergy }}
+                    </v-btn>
+                  </v-btn-toggle>
+                </template>
               </template>
-            </template>
-            <v-btn v-else disabled variant="outlined" density="comfortable" class="rank-na">N/A</v-btn>
-          </div>
+              <v-btn v-else disabled variant="outlined" density="comfortable" class="rank-na">
+                N/A
+              </v-btn>
+            </div>
+          </template>
 
           <h3 class="section-head">ELF / Astral Op</h3>
           <v-autocomplete
@@ -310,7 +347,7 @@ $panel-gap: 16px;
   color: var(--accent-blue);
 }
 
-// Rank / refine toggle buttons: small gap, each fully rounded, blue when active.
+// Rank / synergy toggle buttons: small gap, each fully rounded, blue when active.
 .rank-toggle {
   gap: 6px;
   // v-btn-group hides overflow, which clips the outer buttons' side borders.
@@ -375,8 +412,9 @@ import {
   companionRanksFor,
   valkOptions,
   valkRanksFor,
-  valkRefinesFor,
+  valkSynergiesFor,
   isTeamValk,
+  isMobile,
   modifierCategories,
 } from "@/util/searchLinks";
 import Changelog from "@/components/Changelog.vue";
@@ -408,8 +446,9 @@ export default defineComponent({
       selectedValks: [] as string[],
       valkInput: null,
       valkRanks: {} as Record<string, string | null>,
-      valkRefines: {} as Record<string, string | null>,
+      valkSynergies: {} as Record<string, string | null>,
       allS0Plus1: false,
+      individualRanks: false,
       selectedCompanion: [] as string[],
       companionInput: null,
       companionRank: null as string | null,
@@ -435,8 +474,8 @@ export default defineComponent({
         selectedBoss: this.selectedBoss[0] ?? null,
         sssBoss: this.sssBoss,
         selectedValks: this.selectedValks,
-        valkRanks: this.valkRanks,
-        valkRefines: this.valkRefines,
+        valkRanks: this.effectiveValkRanks,
+        valkSynergies: this.effectiveValkSynergies,
         allS0Plus1: this.allS0Plus1,
         selectedCompanion: this.selectedCompanion[0] ?? null,
         companionRank: this.companionRank ?? null,
@@ -445,24 +484,44 @@ export default defineComponent({
           .flatMap((g) => g.items)
           .filter((m) => m.value)
           .map((m) => m.name),
-        dateRange: this.filterByDate ? abyssWeekRange() : null,
+        dateRange: this.useDateFilter ? abyssWeekRange() : null,
       });
     },
-    // The date window the filter resolves to, for the panel's feedback banner.
-    // Null while the filter is off, which is what hides the banner.
+    // Per-valk ranks/synergies only count in the "assign individually" mode. The buttons are
+    // hidden otherwise, and a hidden button's value must not silently reach the search —
+    // the picks are kept in valkRanks/valkSynergies so they come back if the box is re-ticked.
+    effectiveValkRanks(): Record<string, string | null> {
+      return this.individualRanks ? this.valkRanks : {};
+    },
+    effectiveValkSynergies(): Record<string, string | null> {
+      return this.individualRanks ? this.valkSynergies : {};
+    },
+    // Bilibili only honours the pubtime params on its desktop search, so the checkbox is
+    // hidden on mobile rather than offered as a no-op. No reactive dependencies, so Vue
+    // evaluates this once — which is right, the user agent can't change mid-session.
+    showDateFilter(): boolean {
+      return !isMobile();
+    },
+    // The date window the filter resolves to, for the panel's feedback banner. Null while
+    // the filter is off (or unavailable), which is what hides the banner.
     dateRangeLabel(): string | null {
-      return this.filterByDate ? formatAbyssRange(abyssWeekRange()) : null;
+      return this.useDateFilter ? formatAbyssRange(abyssWeekRange()) : null;
+    },
+    // The checkbox is hidden on mobile, so its value can never be set there — but read it
+    // through this guard anyway, so the filter can't be applied on a device that ignores it.
+    useDateFilter(): boolean {
+      return this.showDateFilter && this.filterByDate;
     },
     // Rank button labels for the currently selected companion's group.
     companionRanks(): string[] {
       return companionRanksFor(this.selectedCompanion[0] ?? null);
     },
-    // One entry per selected valk (in order), with its available rank/refine labels.
-    valkRows(): { valk: string; ranks: string[]; refines: string[] }[] {
+    // One entry per selected valk (in order), with its available rank/synergy labels.
+    valkRows(): { valk: string; ranks: string[]; synergies: string[] }[] {
       return this.selectedValks.map((valk) => ({
         valk,
         ranks: valkRanksFor(valk),
-        refines: valkRefinesFor(valk),
+        synergies: valkSynergiesFor(valk),
       }));
     },
     // Score dropdown values for the currently selected mode (SS / SSS / SSS +20%).
@@ -478,7 +537,7 @@ export default defineComponent({
       }
     },
     // Enforce valk selection rules: a "team" is exclusive (it fills all 3 slots),
-    // otherwise up to 3 valks. Also prune rank/refine state for dropped valks.
+    // otherwise up to 3 valks. Also prune rank/synergy state for dropped valks.
     selectedValks(valks: string[], oldValks: string[]) {
       const hasTeam = valks.some((v) => isTeamValk(v));
       if (hasTeam && valks.length > 1) {
@@ -493,8 +552,8 @@ export default defineComponent({
       for (const name of Object.keys(this.valkRanks)) {
         if (!valks.includes(name)) delete this.valkRanks[name];
       }
-      for (const name of Object.keys(this.valkRefines)) {
-        if (!valks.includes(name)) delete this.valkRefines[name];
+      for (const name of Object.keys(this.valkSynergies)) {
+        if (!valks.includes(name)) delete this.valkSynergies[name];
       }
     },
     // Limit companion selection to a maximum of 1, and drop a rank that no

@@ -10,8 +10,8 @@ export interface BiliSearchInput {
   sssBoss: boolean;
   selectedValks: string[];
   valkRanks: Record<string, string | null>;
-  valkRefines: Record<string, string | null>;
-  // Use the team-wide "All S0+1" term instead of each valk's individual rank/refine.
+  valkSynergies: Record<string, string | null>;
+  // Use the team-wide "All S0+1" term instead of each valk's individual rank/synergy.
   allS0Plus1: boolean;
   selectedCompanion: string | null;
   companionRank: string | null;
@@ -22,7 +22,11 @@ export interface BiliSearchInput {
   dateRange: { begin: number; end: number } | null;
 }
 
-function isMobile(): boolean {
+// Whether the viewer is on a mobile device, by user agent. Drives the search host below,
+// and lets the UI hide options Bilibili only honours on desktop. UA sniffing rather than a
+// viewport check on purpose: what matters is which Bilibili front end the link will open
+// (m.bilibili.com or the app), not how wide the window is.
+export function isMobile(): boolean {
   return window.navigator.userAgent.toLowerCase().includes("mobi");
 }
 
@@ -54,7 +58,7 @@ function bossNames(selectedBoss: string | null, sssBoss: boolean): string[] {
 
 type ValkGroup = {
   ranks: Record<string, string[]>;
-  refines?: Record<string, string[]>;
+  synergies?: Record<string, string[]>;
   options: Record<string, string[]>;
 };
 
@@ -76,13 +80,13 @@ export function valkRanksFor(name: string | null): string[] {
   return group ? Object.keys(group.ranks) : [];
 }
 
-// Refine button labels for a valk option's group (empty when the group has none).
-export function valkRefinesFor(name: string | null): string[] {
+// Synergybutton labels for a valk option's group (empty when the group has none).
+export function valkSynergiesFor(name: string | null): string[] {
   if (!name) {
     return [];
   }
   const group = valkGroupFor(name);
-  return group && group.refines ? Object.keys(group.refines) : [];
+  return group && group.synergies ? Object.keys(group.synergies) : [];
 }
 
 // Whether a valk option is a full 3-valk team (an exclusive selection).
@@ -91,25 +95,25 @@ export function isTeamValk(name: string): boolean {
   return team ? name in team.options : false;
 }
 
-// Search tokens for one valk: rank + refine + alias, for every value combination.
-function valkVariants(name: string, rankLabel: string | null, refineLabel: string | null): string[] {
+// Search tokens for one valk: rank + synergy + alias, for every value combination.
+function valkVariants(name: string, rankLabel: string | null, synergyLabel: string | null): string[] {
   const group = valkGroupFor(name);
   if (!group) {
     return [""];
   }
   const aliases = group.options[name];
   const rankValues = rankLabel && group.ranks[rankLabel] ? group.ranks[rankLabel] : [""];
-  // Refine values contain "+", which is the URL term separator, so encode it as %2B
-  // to keep rank+refine+alias as a single literal search token.
-  const refineValues =
-    refineLabel && group.refines && group.refines[refineLabel]
-      ? group.refines[refineLabel].map((r) => r.replace(/\+/g, "%2B"))
+  // Synergyvalues contain "+", which is the URL term separator, so encode it as %2B
+  // to keep rank+synergy+alias as a single literal search token.
+  const synergyValues =
+    synergyLabel && group.synergies && group.synergies[synergyLabel]
+      ? group.synergies[synergyLabel].map((r) => r.replace(/\+/g, "%2B"))
       : [""];
   const variants: string[] = [];
   for (const rank of rankValues) {
-    for (const refine of refineValues) {
+    for (const synergy of synergyValues) {
       for (const alias of aliases) {
-        variants.push(rank + refine + alias);
+        variants.push(rank + synergy + alias);
       }
     }
   }
@@ -117,19 +121,19 @@ function valkVariants(name: string, rankLabel: string | null, refineLabel: strin
 }
 
 // Every combination of the selected valks' search tokens, lead-first order preserved.
-// Each valk contributes rank + refine + alias (per the selected rank/refine labels).
+// Each valk contributes rank + synergy + alias (per the selected rank/synergy labels).
 function valkCombos(
   selectedValks: string[],
   valkRanks: Record<string, string | null>,
-  valkRefines: Record<string, string | null>,
+  valkSynergies: Record<string, string | null>,
   allS0Plus1: boolean
 ): string[] {
   let combos = [""];
   for (const name of selectedValks) {
-    // With "All S0+1" the individual rank/refine are ignored — just the aliases.
+    // With "All S0+1" the individual rank/synergy are ignored — just the aliases.
     const variants = allS0Plus1
       ? valkGroupFor(name)?.options[name] ?? [""]
-      : valkVariants(name, valkRanks[name] ?? null, valkRefines[name] ?? null);
+      : valkVariants(name, valkRanks[name] ?? null, valkSynergies[name] ?? null);
     combos = combos.flatMap((curr) => variants.map((v) => curr + v));
   }
   if (allS0Plus1) {
@@ -201,6 +205,21 @@ export const modifierCategories: { category: string; type: string; names: string
     names: Object.keys(group.options),
   }));
 
+// The order the modifier terms take inside the leading keyword segment, by category —
+// independent of both the data-file order and the order the checkboxes are displayed in.
+// A category not named here keeps its data-file position, after the ones that are.
+const modifierCategoryOrder = ["Other", "Game Mode", "Difficulty Level"];
+
+// Modifier name -> sort rank, so the active modifiers can be put in category order.
+const modifierCategoryRank: Record<string, number> = {};
+Object.entries(modifierCategoryData).forEach(([category, group], dataIndex) => {
+  const listed = modifierCategoryOrder.indexOf(category);
+  const rank = listed === -1 ? modifierCategoryOrder.length + dataIndex : listed;
+  for (const name of Object.keys(group.options)) {
+    modifierCategoryRank[name] = rank;
+  }
+});
+
 // Builds the list of Bilibili search URLs for the current selection.
 export function buildBiliLinks(input: BiliSearchInput): string[] {
   const {
@@ -209,7 +228,7 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
     sssBoss,
     selectedValks,
     valkRanks,
-    valkRefines,
+    valkSynergies,
     allS0Plus1,
     selectedCompanion,
     companionRank,
@@ -218,8 +237,12 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
     dateRange,
   } = input;
 
-  // Active modifiers (category checkboxes); these lead the search string.
-  let modifierParams = activeModifiers.map((name) => modifierAliases[name]);
+  // Active modifiers (category checkboxes); these lead the search string, ordered by
+  // category rather than by the order the boxes happen to be ticked. Array.sort is stable,
+  // so modifiers sharing a category keep their relative order.
+  let modifierParams = [...activeModifiers]
+    .sort((a, b) => (modifierCategoryRank[a] ?? 0) - (modifierCategoryRank[b] ?? 0))
+    .map((name) => modifierAliases[name]);
   // Must have at least one element in each array passed to combine to generate anything.
   modifierParams = modifierParams.length ? modifierParams : [[""]];
   const modifierCombos = Array.from(combine(modifierParams)).map((c) => c.join("+").trim());
@@ -238,7 +261,7 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
       modifierCombos,
       weatherNames(selectedWeather),
       bossNames(selectedBoss, sssBoss),
-      valkCombos(selectedValks, valkRanks, valkRefines, allS0Plus1),
+      valkCombos(selectedValks, valkRanks, valkSynergies, allS0Plus1),
       companionNames(selectedCompanion, companionRank),
       scoreTokens,
     ])

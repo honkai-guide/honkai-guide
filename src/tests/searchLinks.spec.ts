@@ -7,7 +7,7 @@ import {
   modifierCategories,
   valkOptions,
   valkRanksFor,
-  valkRefinesFor,
+  valkSynergiesFor,
   type BiliSearchInput,
 } from "@/util/searchLinks";
 import { bossToChinese } from "@/data/bossTranslations";
@@ -43,7 +43,7 @@ const EMPTY: BiliSearchInput = {
   sssBoss: false,
   selectedValks: [],
   valkRanks: {},
-  valkRefines: {},
+  valkSynergies: {},
   allS0Plus1: false,
   selectedCompanion: null,
   companionRank: null,
@@ -215,12 +215,12 @@ describe("buildBiliLinks", () => {
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
-    it("concatenates rank + refine + alias, encoding the refine's + as %2B", () => {
+    it("concatenates rank + synergy + alias, encoding the synergy's + as %2B", () => {
       const valk = ADVANCED2_VALKS[0];
       const links = build({
         selectedValks: [valk],
         valkRanks: { [valk]: "S1" },
-        valkRefines: { [valk]: "+1" },
+        valkSynergies: { [valk]: "+1" },
       });
       const expected = valkToChinese.advanced2.options[valk].map((alias) => `S1%2B1${alias}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
@@ -282,12 +282,12 @@ describe("buildBiliLinks", () => {
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
-    it("overrides individual ranks and refines", () => {
+    it("overrides individual ranks and synergies", () => {
       const valk = ADVANCED2_VALKS[0];
       const withRanks = build({
         selectedValks: [valk],
         valkRanks: { [valk]: "SSS" },
-        valkRefines: { [valk]: "+3" },
+        valkSynergies: { [valk]: "+3" },
         allS0Plus1: true,
       });
       const withoutRanks = build({ selectedValks: [valk], allS0Plus1: true });
@@ -356,6 +356,46 @@ describe("buildBiliLinks", () => {
       }
     });
 
+    // Category order inside the keyword is Other, then Game Mode, then Difficulty Level —
+    // deliberately not the data-file order, and not the order the boxes were ticked.
+    it("orders modifier terms Other, Game Mode, Difficulty Level", () => {
+      const other = firstKey(modifiersToChinese["Other"].options);
+      const gameMode = firstKey(modifiersToChinese["Game Mode"].options);
+      const difficulty = firstKey(modifiersToChinese["Difficulty Level"].options);
+      // Ticked in the opposite order to prove the sort, not the input, decides.
+      const links = build({ activeModifiers: [difficulty, gameMode, other] });
+      for (const link of links) {
+        const terms = keywordOf(link).split("+");
+        expect(terms).toHaveLength(3);
+        expect(modifiersToChinese["Other"].options[other]).toContain(terms[0]);
+        expect(modifiersToChinese["Game Mode"].options[gameMode]).toContain(terms[1]);
+        expect(modifiersToChinese["Difficulty Level"].options[difficulty]).toContain(terms[2]);
+      }
+    });
+
+    it("puts Other ahead of Game Mode whichever order they arrive in", () => {
+      const other = firstKey(modifiersToChinese["Other"].options);
+      const gameMode = firstKey(modifiersToChinese["Game Mode"].options);
+      const forwards = build({ activeModifiers: [other, gameMode] });
+      const backwards = build({ activeModifiers: [gameMode, other] });
+      expect(forwards).toEqual(backwards);
+      for (const link of forwards) {
+        expect(modifiersToChinese["Other"].options[other]).toContain(keywordOf(link).split("+")[0]);
+      }
+    });
+
+    it("keeps modifiers from one category in their given order", () => {
+      // Array.sort is stable, so same-rank entries must not be reshuffled.
+      const [first, second] = Object.keys(modifiersToChinese["Other"].options);
+      if (!second) return;
+      const links = build({ activeModifiers: [first, second] });
+      for (const link of links) {
+        const terms = keywordOf(link).split("+");
+        expect(modifiersToChinese["Other"].options[first]).toContain(terms[0]);
+        expect(modifiersToChinese["Other"].options[second]).toContain(terms[1]);
+      }
+    });
+
     it("expands modifiers with multiple aliases into separate links", () => {
       const multi = Object.keys(modifiersToChinese["Game Mode"].options).find(
         (name) => modifiersToChinese["Game Mode"].options[name].length > 1
@@ -378,7 +418,7 @@ describe("buildBiliLinks", () => {
         sssBoss: true,
         selectedValks: [valk],
         valkRanks: { [valk]: "S1" },
-        valkRefines: { [valk]: "+1" },
+        valkSynergies: { [valk]: "+1" },
         selectedCompanion: ELF,
         companionRank: firstKey(companionToChinese.elf.ranks),
         score: "40000 / 48000",
@@ -418,28 +458,28 @@ describe("option lists exposed to the UI", () => {
   });
 });
 
-describe("valkRanksFor / valkRefinesFor", () => {
+describe("valkRanksFor / valkSynergiesFor", () => {
   it("returns no ranks for a group that defines none", () => {
     expect(valkRanksFor(SIMPLE_VALK)).toEqual([]);
-    expect(valkRefinesFor(SIMPLE_VALK)).toEqual([]);
+    expect(valkSynergiesFor(SIMPLE_VALK)).toEqual([]);
   });
 
   it("returns the group's rank labels for a ranked valk", () => {
     expect(valkRanksFor(ADVANCED2_VALKS[0])).toEqual(Object.keys(valkToChinese.advanced2.ranks));
   });
 
-  it("returns refine labels only for the group that defines them", () => {
-    expect(valkRefinesFor(ADVANCED2_VALKS[0])).toEqual(
-      Object.keys(valkToChinese.advanced2.refines)
+  it("returns synergy labels only for the group that defines them", () => {
+    expect(valkSynergiesFor(ADVANCED2_VALKS[0])).toEqual(
+      Object.keys(valkToChinese.advanced2.synergies)
     );
-    expect(valkRefinesFor(firstKey(valkToChinese.basic.options))).toEqual([]);
+    expect(valkSynergiesFor(firstKey(valkToChinese.basic.options))).toEqual([]);
   });
 
   it("returns empty for null or unknown names", () => {
     expect(valkRanksFor(null)).toEqual([]);
-    expect(valkRefinesFor(null)).toEqual([]);
+    expect(valkSynergiesFor(null)).toEqual([]);
     expect(valkRanksFor("Not A Valkyrie")).toEqual([]);
-    expect(valkRefinesFor("Not A Valkyrie")).toEqual([]);
+    expect(valkSynergiesFor("Not A Valkyrie")).toEqual([]);
   });
 });
 
