@@ -2,7 +2,18 @@
   <div>
         <h2 class="section-head">Changelog</h2>
         <ul class="changelog">
-          <li>2026/08/29 - Happy early 10th Anniversary Honkai Impact 3rd.</li>
+          <li>2026/08/29 - Happy early 10th Anniversary Honkai Impact 3rd.<br>
+            - Added Senadina Astral Op<br>
+            - Added Klein ELF<br>
+            - Weather has a separate section<br>
+            - Added Fire weather<br>
+            - Added valkyrie ranks and synergies<br>
+            - Added ELF/Astral Op stars/ranks<br>
+            - Extra Modifiers has been recategorized<br>
+            - Memorial Arena score search now supports SSS scores, and will generate links for both the base score and the +20% score<br>
+            - Links are now displayed in a widget<br>
+            - Timeframe search for CN abyss has been added; this is not supported by mobile platforms and is desktop only<br>
+          </li>
           <li>2026/06/07 - Added Book of Fuxi ELF, Sirin ELF, Wings of Panacea Seele</li>
           <li>2026/05/18 - Added Bailu Youyun Astral Op</li>
           <li>2026/03/21 - Added Frost weather in modifiers</li>

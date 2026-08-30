@@ -605,10 +605,12 @@ export default defineComponent({
     // Human-readable label for a generated link: only the search terms, no URL or params.
     displayLink(link: string): string {
       const afterKeyword = link.split("keyword=")[1] ?? link;
-      // &order=pubdate is on every link and leads the query params, so cutting there
-      // drops it and any date-range params that follow. Matching that whole literal
-      // (not a bare "&") means a search term containing "&" won't truncate the label.
-      const terms = afterKeyword.split("&order=pubdate")[0];
+      // A link carries either &order=pubdate (no date filter) or &pubtime_begin_s=… (date
+      // filter, which drops the sort), never both, and whichever it is leads the query
+      // params. Cutting at the first of those two literals drops them and anything after.
+      // Matching the whole literal (not a bare "&") means a search term containing "&"
+      // won't truncate the label.
+      const terms = afterKeyword.split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
       return terms.replaceAll("+", " ").replaceAll("%2B", "+");
     },
   },

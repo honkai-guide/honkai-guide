@@ -56,7 +56,9 @@ const build = (overrides: Partial<BiliSearchInput> = {}) =>
   buildBiliLinks({ ...EMPTY, ...overrides });
 
 // The search terms of a link: everything between "keyword=" and the query params.
-const keywordOf = (link: string) => link.split("keyword=")[1].split(ORDER)[0];
+// A link carries either the sort param or the date-range params, never both.
+const keywordOf = (link: string) =>
+  link.split("keyword=")[1].split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
 const keywordsOf = (links: string[]) => links.map(keywordOf);
 
 // buildBiliLinks reads navigator.userAgent to choose the desktop or mobile host.
@@ -81,26 +83,25 @@ describe("buildBiliLinks", () => {
   });
 
   describe("URL shape", () => {
-    it("puts &order=pubdate on every link, ahead of any other param", () => {
-      const links = build({ selectedBoss: BOSS, dateRange: { begin: 100, end: 200 } });
+    it("sorts by pubdate when there is no date filter", () => {
+      const links = build({ selectedBoss: BOSS });
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
-        expect(link).toContain(ORDER);
+        expect(link.endsWith(ORDER)).toBe(true);
         // First param after the keyword, so it reliably marks where the terms end.
         expect(link.split("&")[1]).toBe("order=pubdate");
       }
     });
 
-    it("includes &order=pubdate even with no date filter", () => {
-      for (const link of build({ selectedBoss: BOSS })) {
-        expect(link.endsWith(ORDER)).toBe(true);
-      }
-    });
-
-    it("appends the publish-time range after the sort param", () => {
+    it("uses the publish-time range instead of the sort param when a date range is set", () => {
       const links = build({ selectedBoss: BOSS, dateRange: { begin: 1754006400, end: 1754265599 } });
+      expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
-        expect(link).toContain(`${ORDER}&pubtime_begin_s=1754006400&pubtime_end_s=1754265599`);
+        // Bilibili returns poor results when pubtime_* is combined with order=pubdate.
+        expect(link).not.toContain(ORDER);
+        expect(link.endsWith("&pubtime_begin_s=1754006400&pubtime_end_s=1754265599")).toBe(true);
+        // First param after the keyword, so it reliably marks where the terms end.
+        expect(link.split("&")[1]).toBe("pubtime_begin_s=1754006400");
       }
     });
 
@@ -427,7 +428,7 @@ describe("buildBiliLinks", () => {
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
         expect(keywordOf(link).split("+")).toHaveLength(6);
-        expect(link).toContain(`${ORDER}&pubtime_begin_s=1&pubtime_end_s=2`);
+        expect(link.endsWith("&pubtime_begin_s=1&pubtime_end_s=2")).toBe(true);
       }
       // Both score thresholds are represented.
       expect(links.some((l) => keywordOf(l).endsWith("40000"))).toBe(true);

@@ -22,9 +22,8 @@ describe("displayLink", () => {
     expect(display("https://search.bilibili.com/all?keyword=终&order=pubdate")).toBe("终");
   });
 
-  it("drops the date-range params along with the sort param", () => {
-    const link =
-      "https://search.bilibili.com/all?keyword=终&order=pubdate&pubtime_begin_s=1&pubtime_end_s=2";
+  it("drops the date-range params on a date-filtered link, which has no sort param", () => {
+    const link = "https://search.bilibili.com/all?keyword=终&pubtime_begin_s=1&pubtime_end_s=2";
     expect(display(link)).toBe("终");
   });
 
@@ -47,8 +46,11 @@ describe("displayLink", () => {
   });
 
   it("does not truncate a term containing an ampersand", () => {
-    // The cut matches the whole &order=pubdate literal, not a bare "&".
+    // The cut matches the whole &order=pubdate / &pubtime_begin_s= literal, not a bare "&".
     expect(display("https://search.bilibili.com/all?keyword=A&B+boss&order=pubdate")).toBe(
+      "A&B boss"
+    );
+    expect(display("https://search.bilibili.com/all?keyword=A&B+boss&pubtime_begin_s=1")).toBe(
       "A&B boss"
     );
   });
