@@ -26,4 +26,18 @@ function abyssWeekRange(now: Date = new Date()): { begin: number; end: number } 
   return { begin: cstMidnight(beginDayOffset), end: cstMidnight(endDayOffset) - 1 };
 }
 
-export { abyssWeekRange };
+// Human-readable form of a range, rendered in the China Standard Time its boundaries were
+// anchored to — showing it in the viewer's local zone would land the edges on the wrong
+// days. `end` is the last second of the closing day, so both ends read as inclusive dates
+// (e.g. a Mon 00:00 -> Thu 00:00 half-week shows as Mon - Wed).
+function formatAbyssRange({ begin, end }: { begin: number; end: number }): string {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `${fmt.format(new Date(begin * 1000))} – ${fmt.format(new Date(end * 1000))}`;
+}
+
+export { abyssWeekRange, formatAbyssRange };

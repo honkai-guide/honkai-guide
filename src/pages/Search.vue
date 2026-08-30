@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <v-container fluid>
     <v-row>
       <!-- Left: the form. Right column holds the live-updating links. -->
       <v-col cols="12" md="7" lg="8">
-        <h1>Bilibili search generator</h1>
+        <h1>Honkai Impact 3rd - Bilibili search generator</h1>
         <!--
           Hidden, but kept to credit the Chinese translation sources.
 
@@ -184,6 +184,19 @@
             <span>Bronya works hard to instantly generate links as you type.</span>
           </div>
           <p class="mt-2 mb-2">Some bosses/valks go by multiple names, so try all links!</p>
+          <!-- Sits outside .link-scroll so it stays visible while the list scrolls. -->
+          <!-- icon="$info" rather than type="info": the type prop applies its own
+               (darker) theme colour, which would override the accent below. -->
+          <v-alert
+            v-if="dateRangeLabel"
+            icon="$info"
+            variant="tonal"
+            density="compact"
+            class="date-alert mb-3"
+          >
+            <strong>CN Abyss date filter ON!</strong>
+            <div class="text-body-2">Only videos published {{ dateRangeLabel }} (CN time).</div>
+          </v-alert>
           <div class="link-scroll">
             <ul class="link-list">
               <li v-for="link in biliLinks" :key="link" class="mb-3">
@@ -221,7 +234,7 @@
 // gives `position: sticky` room to travel.
 //
 // Sticky offsets are measured from the viewport, not from v-main, so the pinned
-// panel has to clear App.vue's fixed 64px v-app-bar — with a smaller offset its
+// panel has to clear App.vue's fixed 64px v-app-bar â€” with a smaller offset its
 // top slides under the bar as soon as the page scrolls. The height cap has to
 // subtract the same 64px (plus the top/bottom gaps) or the panel overshoots the
 // bottom of the screen and grows an inner scrollbar it doesn't need.
@@ -275,16 +288,26 @@ $panel-gap: 16px;
   padding-left: 1.5rem;
 }
 
+// The tonal alert variant is `color: inherit` with a `currentColor` underlay, so this
+// one declaration tints both the text and the background wash.
+//
+// Qualified with .v-alert on purpose: Vuetify's `.v-alert--variant-tonal { color: inherit }`
+// has the same one-class specificity and is emitted after this block, so a bare
+// `.date-alert` loses the tie and the text falls back to inherited white.
+.v-alert.date-alert {
+  color: var(--accent-blue);
+}
+
 // Highlighted dropdown item text (mouse hover or keyboard), so it stands out.
 .v-overlay .v-list-item:hover .v-list-item-title,
 .v-overlay .v-list-item--focus-visible .v-list-item-title,
 .v-overlay .v-list-item:focus-visible .v-list-item-title {
-  color: #90caf9;
+  color: var(--accent-blue);
 }
 
 // Highlighted (arrow-key navigated) selection in the input box.
 .v-autocomplete__selection--selected .v-autocomplete__selection-text {
-  color: #90caf9;
+  color: var(--accent-blue);
 }
 
 // Rank / refine toggle buttons: small gap, each fully rounded, blue when active.
@@ -310,7 +333,7 @@ $panel-gap: 16px;
 }
 
 .rank-toggle .v-btn--active {
-  color: #90caf9;
+  color: var(--accent-blue);
 }
 
 // Keeps the "Nth Valkyrie" labels aligned so the button rows line up.
@@ -343,7 +366,7 @@ $panel-gap: 16px;
 <script lang="ts">
 import { defineComponent } from "vue";
 import { generateScores } from "@/util/score_util";
-import { abyssWeekRange } from "@/util/dates";
+import { abyssWeekRange, formatAbyssRange } from "@/util/dates";
 import { bossToChinese } from "@/data/bossTranslations";
 import { weatherToChinese } from "@/data/weatherTranslations";
 import {
@@ -424,6 +447,11 @@ export default defineComponent({
           .map((m) => m.name),
         dateRange: this.filterByDate ? abyssWeekRange() : null,
       });
+    },
+    // The date window the filter resolves to, for the panel's feedback banner.
+    // Null while the filter is off, which is what hides the banner.
+    dateRangeLabel(): string | null {
+      return this.filterByDate ? formatAbyssRange(abyssWeekRange()) : null;
     },
     // Rank button labels for the currently selected companion's group.
     companionRanks(): string[] {
@@ -518,10 +546,10 @@ export default defineComponent({
     // Human-readable label for a generated link: only the search terms, no URL or params.
     displayLink(link: string): string {
       const afterKeyword = link.split("keyword=")[1] ?? link;
-      // The three date params are always appended together starting with pubtime_begin_s,
-      // so cutting there drops them all. Matching the full name (not a bare "&") means a
-      // search term containing "&" won't truncate the label.
-      const terms = afterKeyword.split("&pubtime_begin_s=")[0];
+      // &order=pubdate is on every link and leads the query params, so cutting there
+      // drops it and any date-range params that follow. Matching that whole literal
+      // (not a bare "&") means a search term containing "&" won't truncate the label.
+      const terms = afterKeyword.split("&order=pubdate")[0];
       return terms.replaceAll("+", " ").replaceAll("%2B", "+");
     },
   },

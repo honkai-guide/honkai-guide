@@ -15,7 +15,7 @@
 
     <v-navigation-drawer v-model="drawer">
       <v-list density="compact">
-        <v-list-item to="/" prepend-icon="mdi-magnify" title="Bilibili search"></v-list-item>
+        <v-list-item to="/" prepend-icon="mdi-magnify" title="HI3 Bilibili search"></v-list-item>
       </v-list>
     </v-navigation-drawer>
 
@@ -80,4 +80,10 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+:root {
+  // Site-wide accent blue. Used for dropdown hover/selection text, active toggle
+  // buttons and the date-filter alert — change it here to restyle all of them.
+  --accent-blue: #90caf9;
+}
+</style>

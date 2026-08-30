@@ -249,10 +249,13 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
 
   // bilibili changes spaces to + in their url query params
   // handle special case for 全S0+1, encode the + to %2B
-  // Optional publish-time range filter (sorted by publish date) as Bilibili query params.
-  const dateSuffix = dateRange
-    ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}&order=pubdate`
-    : "";
+  // Results are always sorted newest-first, so &order=pubdate leads the query params
+  // on every link. Keeping it first (query param order is irrelevant to Bilibili) means
+  // it always marks where the search terms end, which is what displayLink cuts on.
+  // The publish-time range filter is optional and follows it.
+  const dateSuffix =
+    "&order=pubdate" +
+    (dateRange ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}` : "");
 
   return combinations
     .map((c) => `${baseUrl}${c.join("+").replace("全S0+1", "全S0%2B1").trim()}${dateSuffix}`)
