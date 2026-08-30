@@ -22,6 +22,20 @@ npm run dev
 npm run build
 ```
 
+### Runs the unit tests
+
+```
+npm run test
+```
+
+Or in watch mode, re-running the affected tests as you edit:
+
+```
+npm run test:watch
+```
+
+The suite lives in `src/tests/` and runs on [Vitest](https://vitest.dev/).
+
 ### Type-checks the project
 
 ```
