@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 const Search = () => import("../pages/Search.vue");
 const Changelog = () => import("../pages/Changelog.vue");
+const AkeSearch = () => import("../pages/AkeSearch.vue");
 
 const routes = [
   {
@@ -12,6 +13,11 @@ const routes = [
     path: "/changelog",
     name: "changelog",
     component: Changelog,
+  },
+  {
+    path: "/ake",
+    name: "ake",
+    component: AkeSearch,
   },
 ];
 

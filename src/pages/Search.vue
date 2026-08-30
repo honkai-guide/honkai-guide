@@ -269,7 +269,7 @@
 // gives `position: sticky` room to travel.
 //
 // Sticky offsets are measured from the viewport, not from v-main, so the pinned
-// panel has to clear App.vue's fixed 64px v-app-bar â€” with a smaller offset its
+// panel has to clear App.vue's fixed 64px v-app-bar — with a smaller offset its
 // top slides under the bar as soon as the page scrolls. The height cap has to
 // subtract the same 64px (plus the top/bottom gaps) or the panel overshoots the
 // bottom of the screen and grows an inner scrollbar it doesn't need.
@@ -408,9 +408,9 @@ import {
   valkRanksFor,
   valkSynergiesFor,
   isTeamValk,
-  isMobile,
   modifierCategories,
 } from "@/util/searchLinks";
+import { isMobile } from "@/util/biliUrl";
 import aijGif from "@/assets/aij2.gif";
 import brnGif from "@/assets/brn.gif";
 

@@ -1,3 +1,4 @@
+import { buildKeywordLinks, combine } from "@/util/biliUrl";
 import { bossToChinese } from "@/data/bossTranslations";
 import { valkToChinese } from "@/data/valkTranslations";
 import { modifiersToChinese } from "@/data/modifierTranslations";
@@ -20,21 +21,6 @@ export interface BiliSearchInput {
   activeModifiers: string[];
   // Optional Bilibili publish-time filter in unix seconds, or null for no filter.
   dateRange: { begin: number; end: number } | null;
-}
-
-// Whether the viewer is on a mobile device, by user agent. Drives the search host below,
-// and lets the UI hide options Bilibili only honours on desktop. UA sniffing rather than a
-// viewport check on purpose: what matters is which Bilibili front end the link will open
-// (m.bilibili.com or the app), not how wide the window is.
-export function isMobile(): boolean {
-  return window.navigator.userAgent.toLowerCase().includes("mobi");
-}
-
-// Cartesian product of the given arrays of strings.
-function* combine(arrOfArr: string[][]): Generator<string[]> {
-  const [head, ...tail] = arrOfArr;
-  const remainder = tail.length ? combine(tail) : [[]];
-  for (const r of remainder) for (const h of head) yield [h, ...r];
 }
 
 // All Chinese aliases for the selected weather.
@@ -251,37 +237,21 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
   // expands to two score terms, each producing its own link.
   const scoreTokens = score ? String(score).split(" / ") : [""];
 
-  const baseUrl = isMobile()
-    ? "https://m.bilibili.com/search?keyword="
-    : "https://search.bilibili.com/all?keyword=";
-
   // Order: modifiers first, then weather, boss, valkyries, companion, then score.
-  const combinations = Array.from(
-    combine([
+  return buildKeywordLinks(
+    [
       modifierCombos,
       weatherNames(selectedWeather),
       bossNames(selectedBoss, sssBoss),
       valkCombos(selectedValks, valkRanks, valkSynergies, allS0Plus1),
       companionNames(selectedCompanion, companionRank),
       scoreTokens,
-    ])
-  )
-    .map((element) => element.filter((x) => x !== ""))
-    // Drop the empty combination (nothing selected) so no blank link/bullet is shown.
-    .filter((c) => c.length > 0);
-
-  // bilibili changes spaces to + in their url query params
-  // handle special case for 全S0+1, encode the + to %2B
-  // Bilibili returns poor results when a publish-time range is combined with
-  // &order=pubdate, so the two are mutually exclusive: with a date range we rely on the
-  // range alone (it already narrows things down enough that sorting adds little), and
-  // without one we sort newest-first. Either way the params start with a fixed literal
-  // (&pubtime_begin_s= or &order=pubdate), which is what displayLink cuts on.
-  const dateSuffix = dateRange
-    ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}`
-    : "&order=pubdate";
-
-  return combinations
-    .map((c) => `${baseUrl}${c.join("+").replace("全S0+1", "全S0%2B1").trim()}${dateSuffix}`)
-    .sort((a, b) => a.length - b.length || a.localeCompare(b));
+    ],
+    {
+      dateRange,
+      // bilibili changes spaces to + in their url query params, so the literal + in the
+      // team-wide 全S0+1 term has to be encoded as %2B or it reads as a separator.
+      transformKeyword: (keyword) => keyword.replace("全S0+1", "全S0%2B1"),
+    }
+  );
 }
