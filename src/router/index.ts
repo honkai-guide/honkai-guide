@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 const Search = () => import("../pages/Search.vue");
+const Changelog = () => import("../pages/Changelog.vue");
 
 const routes = [
   {
     path: "/",
     name: "home",
     component: Search,
+  },
+  {
+    path: "/changelog",
+    name: "changelog",
+    component: Changelog,
   },
 ];
 

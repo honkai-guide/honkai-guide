@@ -6,9 +6,13 @@
 
       <v-spacer></v-spacer>
 
+      <!-- `to` (not href) so the changelog is a client-side route, no page reload. -->
+      <v-btn icon="mdi-history" to="/changelog" title="Changelog"></v-btn>
+
       <v-btn
         icon="mdi-github"
         target="_blank"
+        title="Source on GitHub"
         href="https://github.com/PaeP3nguin/honkai-guide"
       ></v-btn>
     </v-app-bar>
