@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateScores } from "@/util/score_util";
+import { generateScores } from "@/util/hi3/scoreUtil";
 
 // Memorial Arena thresholds: each mode starts from a raw score and decays by a
 // fixed number of points per second, floored, for the first 45 seconds.

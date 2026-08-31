@@ -1,6 +1,6 @@
 import { buildKeywordLinks } from "@/util/biliUrl";
-import { akeBossToChinese } from "@/data/ake/akeBossTranslations";
-import { akeOperatorToChinese } from "@/data/ake/akeOperatorTranslations";
+import { akeBossToChinese } from "@/data/ake/bossTranslations";
+import { akeOperatorToChinese } from "@/data/ake/operatorTranslations";
 
 // The Arknights: Endfield search page. Much simpler than the HI3 one — for now just a boss
 // and up to four operators, with no ranks, weather, modifiers or score. URL assembly is

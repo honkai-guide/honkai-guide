@@ -8,6 +8,13 @@
         <p class="mt-2">Only fill out as much as you need!</p>
 
         <v-form>
+          <!--
+            Boss selection is hidden for the first release, not removed: the boss list is
+            still short (Nefarith, Alleikhreos) and unverified. The script side is left
+            intact and working — selectedBoss simply stays empty, so buildAkeBiliLinks
+            receives null and emits no boss term. To restore, uncomment this block and
+            move `autofocus` back here from the Operators field below.
+
           <h3 class="section-head">Boss</h3>
           <v-autocomplete
             v-model="selectedBoss"
@@ -20,12 +27,14 @@
             @update:model-value="bossInput = ''"
             :items="bosses"
           ></v-autocomplete>
+          -->
 
           <h3 class="section-head">Operators</h3>
           <v-autocomplete
             v-model="selectedOperators"
             v-model:search="operatorInput"
             hint="Order matters! Choose the lead operator first. Up to 4 can be selected."
+            autofocus
             multiple
             auto-select-first
             clearable
@@ -142,7 +151,8 @@ import {
   akeOperatorOptions,
   buildAkeBiliLinks,
   MAX_OPERATORS,
-} from "@/util/akeSearchLinks";
+} from "@/util/ake/searchLinks";
+import { displayLink } from "@/util/biliUrl";
 
 export default defineComponent({
   data: function () {
@@ -178,17 +188,8 @@ export default defineComponent({
     },
   },
   methods: {
-    // Human-readable label for a generated link: only the search terms, no URL or params.
-    displayLink(link: string): string {
-      const afterKeyword = link.split("keyword=")[1] ?? link;
-      // A link carries either &order=pubdate (no date filter) or &pubtime_begin_s=… (date
-      // filter, which drops the sort), never both, and whichever it is leads the query
-      // params. This page has no date filter yet, so it is always the former — matching
-      // both keeps the label correct if that changes. Matching the whole literal (not a
-      // bare "&") means a search term containing "&" won't truncate the label.
-      const terms = afterKeyword.split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
-      return terms.replaceAll("+", " ").replaceAll("%2B", "+");
-    },
+    // Shared with the HI3 page; see util/biliUrl.ts.
+    displayLink,
   },
 });
 </script>

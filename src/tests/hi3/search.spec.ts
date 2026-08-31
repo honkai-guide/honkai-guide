@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import Search from "@/pages/Search.vue";
+import { displayLink } from "@/util/biliUrl";
 
 // Search.vue is an Options API component, so its methods, computeds and watchers are
 // plain functions on the component definition. Calling them with a hand-built `this`
@@ -15,52 +16,11 @@ const instance = (overrides: Record<string, any> = {}) => ({
   ...overrides,
 });
 
+// displayLink is shared code now (util/biliUrl.ts), covered in tests/biliUrl.spec.ts.
+// This spec keeps to the rules that are genuinely this page's own.
 describe("displayLink", () => {
-  const display = (link: string) => methods.displayLink(link);
-
-  it("shows only the search terms, dropping host and params", () => {
-    expect(display("https://search.bilibili.com/all?keyword=终&order=pubdate")).toBe("终");
-  });
-
-  it("drops the date-range params on a date-filtered link, which has no sort param", () => {
-    const link = "https://search.bilibili.com/all?keyword=终&pubtime_begin_s=1&pubtime_end_s=2";
-    expect(display(link)).toBe("终");
-  });
-
-  it("renders term separators as spaces", () => {
-    expect(display("https://search.bilibili.com/all?keyword=红莲+终+40000&order=pubdate")).toBe(
-      "红莲 终 40000"
-    );
-  });
-
-  it("decodes %2B back into a literal + for display", () => {
-    expect(display("https://search.bilibili.com/all?keyword=全S0%2B1终&order=pubdate")).toBe(
-      "全S0+1终"
-    );
-  });
-
-  it("decodes a rank synergy's encoded + too", () => {
-    expect(display("https://search.bilibili.com/all?keyword=S1%2B1终&order=pubdate")).toBe(
-      "S1+1终"
-    );
-  });
-
-  it("does not truncate a term containing an ampersand", () => {
-    // The cut matches the whole &order=pubdate / &pubtime_begin_s= literal, not a bare "&".
-    expect(display("https://search.bilibili.com/all?keyword=A&B+boss&order=pubdate")).toBe(
-      "A&B boss"
-    );
-    expect(display("https://search.bilibili.com/all?keyword=A&B+boss&pubtime_begin_s=1")).toBe(
-      "A&B boss"
-    );
-  });
-
-  it("returns the input unchanged when there is no keyword param", () => {
-    expect(display("not-a-link")).toBe("not-a-link");
-  });
-
-  it("round-trips the mobile host as well", () => {
-    expect(display("https://m.bilibili.com/search?keyword=终&order=pubdate")).toBe("终");
+  it("is the shared implementation, not a private copy", () => {
+    expect(methods.displayLink).toBe(displayLink);
   });
 });
 

@@ -54,7 +54,7 @@ export function buildKeywordLinks(
   // &order=pubdate, so the two are mutually exclusive: with a date range we rely on the
   // range alone (it already narrows things down enough that sorting adds little), and
   // without one we sort newest-first. Either way the params start with a fixed literal
-  // (&pubtime_begin_s= or &order=pubdate), which is what the pages' displayLink cuts on.
+  // (&pubtime_begin_s= or &order=pubdate), which is what displayLink below cuts on.
   const suffix = dateRange
     ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}`
     : "&order=pubdate";
@@ -67,4 +67,17 @@ export function buildKeywordLinks(
       return `${baseUrl}${(transformKeyword ? transformKeyword(keyword) : keyword).trim()}${suffix}`;
     })
     .sort((a, b) => a.length - b.length || a.localeCompare(b));
+}
+
+// Human-readable label for a generated link: only the search terms, no URL or params.
+// Shared by every search page, so the label reads the same wherever links are listed —
+// and so the cut rule below cannot drift from the suffix built above.
+export function displayLink(link: string): string {
+  const afterKeyword = link.split("keyword=")[1] ?? link;
+  // A link carries either &order=pubdate (no date filter) or &pubtime_begin_s=… (date
+  // filter, which drops the sort), never both, and whichever it is leads the query params.
+  // Cutting at the first of those two literals drops them and anything after. Matching the
+  // whole literal (not a bare "&") means a search term containing "&" won't truncate it.
+  const terms = afterKeyword.split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
+  return terms.replaceAll("+", " ").replaceAll("%2B", "+");
 }
