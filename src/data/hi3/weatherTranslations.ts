@@ -1,4 +1,4 @@
-export const weatherToChinese = {
+export const hi3WeatherToChinese = {
   "Blood Thorn Patch": ["流血"],
   Bloodlust: ["嗜战"],
   Counter: ["克制"],

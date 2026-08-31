@@ -1,4 +1,4 @@
-export const companionToChinese = {
+export const hi3CompanionToChinese = {
   "elf": {
     "ranks": {
       "★★": ["2星", "二星"],

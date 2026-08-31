@@ -1,4 +1,4 @@
-export const bossToChinese = {
+export const hi3BossToChinese = {
   Assaka: ["阿湿波", "asb"],
   "Argent Knight: Artemis (AKA)": ["月魂"],
   Benares: ["贝纳勒斯", "贝贝龙", "龙"],

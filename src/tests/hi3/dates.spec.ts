@@ -1,5 +1,5 @@
 ﻿import { describe, expect, it } from "vitest";
-import { abyssWeekRange, formatAbyssRange } from "@/util/dates";
+import { abyssWeekRange, formatAbyssRange } from "@/util/hi3/dates";
 
 // Renders a unix-second boundary the way CN players read it: CST weekday + clock.
 // Weekday and time use separate formatters because the punctuation a combined

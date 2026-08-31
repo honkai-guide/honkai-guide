@@ -1,8 +1,9 @@
-import { bossToChinese } from "@/data/bossTranslations";
-import { valkToChinese } from "@/data/valkTranslations";
-import { modifiersToChinese } from "@/data/modifierTranslations";
-import { weatherToChinese } from "@/data/weatherTranslations";
-import { companionToChinese } from "@/data/companionTranslations";
+import { buildKeywordLinks, combine } from "@/util/biliUrl";
+import { hi3BossToChinese } from "@/data/hi3/bossTranslations";
+import { hi3ValkToChinese } from "@/data/hi3/valkTranslations";
+import { hi3ModifiersToChinese } from "@/data/hi3/modifierTranslations";
+import { hi3WeatherToChinese } from "@/data/hi3/weatherTranslations";
+import { hi3CompanionToChinese } from "@/data/hi3/companionTranslations";
 
 export interface BiliSearchInput {
   selectedWeather: string | null;
@@ -16,25 +17,10 @@ export interface BiliSearchInput {
   selectedCompanion: string | null;
   companionRank: string | null;
   score: string | number | null;
-  // Names of the checked modifiers (keys of modifiersToChinese).
+  // Names of the checked modifiers (keys of hi3ModifiersToChinese).
   activeModifiers: string[];
   // Optional Bilibili publish-time filter in unix seconds, or null for no filter.
   dateRange: { begin: number; end: number } | null;
-}
-
-// Whether the viewer is on a mobile device, by user agent. Drives the search host below,
-// and lets the UI hide options Bilibili only honours on desktop. UA sniffing rather than a
-// viewport check on purpose: what matters is which Bilibili front end the link will open
-// (m.bilibili.com or the app), not how wide the window is.
-export function isMobile(): boolean {
-  return window.navigator.userAgent.toLowerCase().includes("mobi");
-}
-
-// Cartesian product of the given arrays of strings.
-function* combine(arrOfArr: string[][]): Generator<string[]> {
-  const [head, ...tail] = arrOfArr;
-  const remainder = tail.length ? combine(tail) : [[]];
-  for (const r of remainder) for (const h of head) yield [h, ...r];
 }
 
 // All Chinese aliases for the selected weather.
@@ -42,7 +28,7 @@ function weatherNames(selectedWeather: string | null): string[] {
   if (selectedWeather === null) {
     return [""];
   }
-  return weatherToChinese[selectedWeather];
+  return hi3WeatherToChinese[selectedWeather];
 }
 
 // All Chinese aliases for the selected boss (SSS-prefixed when applicable).
@@ -51,9 +37,9 @@ function bossNames(selectedBoss: string | null, sssBoss: boolean): string[] {
     return [""];
   }
   if (sssBoss) {
-    return bossToChinese[selectedBoss].map((bossName) => "SSS" + bossName);
+    return hi3BossToChinese[selectedBoss].map((bossName) => "SSS" + bossName);
   }
-  return bossToChinese[selectedBoss];
+  return hi3BossToChinese[selectedBoss];
 }
 
 type ValkGroup = {
@@ -62,7 +48,7 @@ type ValkGroup = {
   options: Record<string, string[]>;
 };
 
-const valkGroups = Object.values(valkToChinese) as ValkGroup[];
+const valkGroups = Object.values(hi3ValkToChinese) as ValkGroup[];
 
 // All selectable valkyrie option names, across every group.
 export const valkOptions: string[] = valkGroups.flatMap((g) => Object.keys(g.options));
@@ -91,7 +77,7 @@ export function valkSynergiesFor(name: string | null): string[] {
 
 // Whether a valk option is a full 3-valk team (an exclusive selection).
 export function isTeamValk(name: string): boolean {
-  const team = (valkToChinese as Record<string, ValkGroup>).team;
+  const team = (hi3ValkToChinese as Record<string, ValkGroup>).team;
   return team ? name in team.options : false;
 }
 
@@ -148,7 +134,7 @@ type CompanionGroup = {
   options: Record<string, string[]>;
 };
 
-const companionGroups = Object.values(companionToChinese) as CompanionGroup[];
+const companionGroups = Object.values(hi3CompanionToChinese) as CompanionGroup[];
 
 // All selectable companion option names, across ELF and Astral Op.
 export const companionOptions: string[] = companionGroups.flatMap((g) => Object.keys(g.options));
@@ -189,7 +175,7 @@ type ModifierCategoryData = {
   options: Record<string, string[]>;
 };
 
-const modifierCategoryData = modifiersToChinese as Record<string, ModifierCategoryData>;
+const modifierCategoryData = hi3ModifiersToChinese as Record<string, ModifierCategoryData>;
 
 // Flattened modifier name -> aliases, across all categories.
 const modifierAliases: Record<string, string[]> = Object.assign(
@@ -251,37 +237,21 @@ export function buildBiliLinks(input: BiliSearchInput): string[] {
   // expands to two score terms, each producing its own link.
   const scoreTokens = score ? String(score).split(" / ") : [""];
 
-  const baseUrl = isMobile()
-    ? "https://m.bilibili.com/search?keyword="
-    : "https://search.bilibili.com/all?keyword=";
-
   // Order: modifiers first, then weather, boss, valkyries, companion, then score.
-  const combinations = Array.from(
-    combine([
+  return buildKeywordLinks(
+    [
       modifierCombos,
       weatherNames(selectedWeather),
       bossNames(selectedBoss, sssBoss),
       valkCombos(selectedValks, valkRanks, valkSynergies, allS0Plus1),
       companionNames(selectedCompanion, companionRank),
       scoreTokens,
-    ])
-  )
-    .map((element) => element.filter((x) => x !== ""))
-    // Drop the empty combination (nothing selected) so no blank link/bullet is shown.
-    .filter((c) => c.length > 0);
-
-  // bilibili changes spaces to + in their url query params
-  // handle special case for 全S0+1, encode the + to %2B
-  // Bilibili returns poor results when a publish-time range is combined with
-  // &order=pubdate, so the two are mutually exclusive: with a date range we rely on the
-  // range alone (it already narrows things down enough that sorting adds little), and
-  // without one we sort newest-first. Either way the params start with a fixed literal
-  // (&pubtime_begin_s= or &order=pubdate), which is what displayLink cuts on.
-  const dateSuffix = dateRange
-    ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}`
-    : "&order=pubdate";
-
-  return combinations
-    .map((c) => `${baseUrl}${c.join("+").replace("全S0+1", "全S0%2B1").trim()}${dateSuffix}`)
-    .sort((a, b) => a.length - b.length || a.localeCompare(b));
+    ],
+    {
+      dateRange,
+      // bilibili changes spaces to + in their url query params, so the literal + in the
+      // team-wide 全S0+1 term has to be encoded as %2B or it reads as a separator.
+      transformKeyword: (keyword) => keyword.replace("全S0+1", "全S0%2B1"),
+    }
+  );
 }

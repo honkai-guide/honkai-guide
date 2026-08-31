@@ -269,7 +269,7 @@
 // gives `position: sticky` room to travel.
 //
 // Sticky offsets are measured from the viewport, not from v-main, so the pinned
-// panel has to clear App.vue's fixed 64px v-app-bar â€” with a smaller offset its
+// panel has to clear App.vue's fixed 64px v-app-bar — with a smaller offset its
 // top slides under the bar as soon as the page scrolls. The height cap has to
 // subtract the same 64px (plus the top/bottom gaps) or the panel overshoots the
 // bottom of the screen and grows an inner scrollbar it doesn't need.
@@ -396,10 +396,10 @@ $panel-gap: 16px;
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { generateScores } from "@/util/score_util";
-import { abyssWeekRange, formatAbyssRange } from "@/util/dates";
-import { bossToChinese } from "@/data/bossTranslations";
-import { weatherToChinese } from "@/data/weatherTranslations";
+import { generateScores } from "@/util/hi3/scoreUtil";
+import { abyssWeekRange, formatAbyssRange } from "@/util/hi3/dates";
+import { hi3BossToChinese } from "@/data/hi3/bossTranslations";
+import { hi3WeatherToChinese } from "@/data/hi3/weatherTranslations";
 import {
   buildBiliLinks,
   companionOptions,
@@ -408,9 +408,9 @@ import {
   valkRanksFor,
   valkSynergiesFor,
   isTeamValk,
-  isMobile,
   modifierCategories,
-} from "@/util/searchLinks";
+} from "@/util/hi3/searchLinks";
+import { displayLink, isMobile } from "@/util/biliUrl";
 import aijGif from "@/assets/aij2.gif";
 import brnGif from "@/assets/brn.gif";
 
@@ -449,10 +449,10 @@ export default defineComponent({
       score: null,
       scoreMode: "SS",
       scoreModes: Object.keys(scoresByMode),
-      bosses: Object.keys(bossToChinese).sort((a, b) => a.localeCompare(b)),
+      bosses: Object.keys(hi3BossToChinese).sort((a, b) => a.localeCompare(b)),
       valks: [...valkOptions].sort((a, b) => a.localeCompare(b)),
       companions: [...companionOptions].sort((a, b) => a.localeCompare(b)),
-      weathers: Object.keys(weatherToChinese).sort((a, b) => a.localeCompare(b)),
+      weathers: Object.keys(hi3WeatherToChinese).sort((a, b) => a.localeCompare(b)),
       modifierGroups: modifierGroups,
       aijGif,
       brnGif,
@@ -594,17 +594,8 @@ export default defineComponent({
         e.preventDefault();
       }
     },
-    // Human-readable label for a generated link: only the search terms, no URL or params.
-    displayLink(link: string): string {
-      const afterKeyword = link.split("keyword=")[1] ?? link;
-      // A link carries either &order=pubdate (no date filter) or &pubtime_begin_s=… (date
-      // filter, which drops the sort), never both, and whichever it is leads the query
-      // params. Cutting at the first of those two literals drops them and anything after.
-      // Matching the whole literal (not a bare "&") means a search term containing "&"
-      // won't truncate the label.
-      const terms = afterKeyword.split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
-      return terms.replaceAll("+", " ").replaceAll("%2B", "+");
-    },
+    // Shared with the AKE page; see util/biliUrl.ts.
+    displayLink,
   },
 });
 </script>

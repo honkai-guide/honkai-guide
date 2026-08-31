@@ -9,12 +9,12 @@ import {
   valkRanksFor,
   valkSynergiesFor,
   type BiliSearchInput,
-} from "@/util/searchLinks";
-import { bossToChinese } from "@/data/bossTranslations";
-import { weatherToChinese } from "@/data/weatherTranslations";
-import { valkToChinese } from "@/data/valkTranslations";
-import { companionToChinese } from "@/data/companionTranslations";
-import { modifiersToChinese } from "@/data/modifierTranslations";
+} from "@/util/hi3/searchLinks";
+import { hi3BossToChinese } from "@/data/hi3/bossTranslations";
+import { hi3WeatherToChinese } from "@/data/hi3/weatherTranslations";
+import { hi3ValkToChinese } from "@/data/hi3/valkTranslations";
+import { hi3CompanionToChinese } from "@/data/hi3/companionTranslations";
+import { hi3ModifiersToChinese } from "@/data/hi3/modifierTranslations";
 
 // Fixtures are read out of the translation data rather than hardcoded: those files are
 // hand-edited and the code is data-driven, so a test that pinned literal Chinese would
@@ -22,19 +22,15 @@ import { modifiersToChinese } from "@/data/modifierTranslations";
 // expectations tied to whatever the data currently says.
 const firstKey = (obj: Record<string, unknown>) => Object.keys(obj)[0];
 
-const BOSS = firstKey(bossToChinese);
-const WEATHER = firstKey(weatherToChinese);
-const SIMPLE_VALK = firstKey(valkToChinese.simple.options);
-const ADVANCED2_VALKS = Object.keys(valkToChinese.advanced2.options);
-const TEAM_VALK = firstKey(valkToChinese.team.options);
-const ELF = firstKey(companionToChinese.elf.options);
-const ASTRAL_OP = firstKey(companionToChinese.astralop.options);
+const BOSS = firstKey(hi3BossToChinese);
+const WEATHER = firstKey(hi3WeatherToChinese);
+const SIMPLE_VALK = firstKey(hi3ValkToChinese.simple.options);
+const ADVANCED2_VALKS = Object.keys(hi3ValkToChinese.advanced2.options);
+const TEAM_VALK = firstKey(hi3ValkToChinese.team.options);
+const ELF = firstKey(hi3CompanionToChinese.elf.options);
+const ASTRAL_OP = firstKey(hi3CompanionToChinese.astralop.options);
 
 const aliasesOf = (obj: Record<string, string[]>, key: string) => obj[key];
-
-const ORDER = "&order=pubdate";
-const DESKTOP = "https://search.bilibili.com/all?keyword=";
-const MOBILE = "https://m.bilibili.com/search?keyword=";
 
 // Nothing selected. Individual tests override only the dimension under test.
 const EMPTY: BiliSearchInput = {
@@ -55,10 +51,9 @@ const EMPTY: BiliSearchInput = {
 const build = (overrides: Partial<BiliSearchInput> = {}) =>
   buildBiliLinks({ ...EMPTY, ...overrides });
 
-// The search terms of a link: everything between "keyword=" and the query params.
-// A link carries either the sort param or the date-range params, never both.
-const keywordOf = (link: string) =>
-  link.split("keyword=")[1].split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
+// The search terms of a link: everything between "keyword=" and the date-range params,
+// which are the only params a link can carry.
+const keywordOf = (link: string) => link.split("keyword=")[1].split("&pubtime_begin_s=")[0];
 const keywordsOf = (links: string[]) => links.map(keywordOf);
 
 // buildBiliLinks reads navigator.userAgent to choose the desktop or mobile host.
@@ -71,81 +66,47 @@ afterEach(() => delete (globalThis as any).window);
 
 describe("buildBiliLinks", () => {
   describe("empty selection", () => {
-    it("produces no links at all when nothing is selected", () => {
-      // The all-empty combination is filtered out so the UI shows no blank bullet.
-      expect(build()).toEqual([]);
-    });
-
     it("produces no links when only an unchecked-style falsy score is given", () => {
       expect(build({ score: "" })).toEqual([]);
       expect(build({ score: 0 })).toEqual([]);
     });
   });
 
-  describe("URL shape", () => {
-    it("sorts by pubdate when there is no date filter", () => {
-      const links = build({ selectedBoss: BOSS });
-      expect(links.length).toBeGreaterThan(0);
-      for (const link of links) {
-        expect(link.endsWith(ORDER)).toBe(true);
-        // First param after the keyword, so it reliably marks where the terms end.
-        expect(link.split("&")[1]).toBe("order=pubdate");
-      }
-    });
-
-    it("uses the publish-time range instead of the sort param when a date range is set", () => {
+  // The URL machinery itself (params, host, + joining) is covered once in
+  // tests/biliUrl.spec.ts. What matters here is that this page hands it the right
+  // options — the wiring the two silently lost in a rebase once.
+  describe("wiring into buildKeywordLinks", () => {
+    it("passes the date range through, so the filter reaches the URL", () => {
       const links = build({ selectedBoss: BOSS, dateRange: { begin: 1754006400, end: 1754265599 } });
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
-        // Bilibili returns poor results when pubtime_* is combined with order=pubdate.
-        expect(link).not.toContain(ORDER);
         expect(link.endsWith("&pubtime_begin_s=1754006400&pubtime_end_s=1754265599")).toBe(true);
-        // First param after the keyword, so it reliably marks where the terms end.
-        expect(link.split("&")[1]).toBe("pubtime_begin_s=1754006400");
       }
     });
 
-    it("omits the publish-time params when there is no date range", () => {
-      for (const link of build({ selectedBoss: BOSS })) {
-        expect(link).not.toContain("pubtime_begin_s");
-        expect(link).not.toContain("pubtime_end_s");
+    it("emits a bare keyword URL when the page passes no date range", () => {
+      const links = build({ selectedBoss: BOSS });
+      expect(links.length).toBeGreaterThan(0);
+      for (const link of links) {
+        expect(link).not.toContain("&");
       }
-    });
-
-    it("uses the desktop host on desktop user agents", () => {
-      for (const link of build({ selectedBoss: BOSS })) {
-        expect(link.startsWith(DESKTOP)).toBe(true);
-      }
-    });
-
-    it("uses the mobile host when the user agent says mobi", () => {
-      setUserAgent("Mozilla/5.0 (Linux; Android 14) Mobile Safari/537.36");
-      for (const link of build({ selectedBoss: BOSS })) {
-        expect(link.startsWith(MOBILE)).toBe(true);
-      }
-    });
-
-    it("sorts links shortest first, then alphabetically", () => {
-      const links = build({ selectedBoss: BOSS, selectedWeather: WEATHER });
-      const sorted = [...links].sort((a, b) => a.length - b.length || a.localeCompare(b));
-      expect(links).toEqual(sorted);
     });
   });
 
   describe("single dimensions", () => {
     it("emits one link per boss alias", () => {
       const links = build({ selectedBoss: BOSS });
-      expect(keywordsOf(links).sort()).toEqual([...aliasesOf(bossToChinese, BOSS)].sort());
+      expect(keywordsOf(links).sort()).toEqual([...aliasesOf(hi3BossToChinese, BOSS)].sort());
     });
 
     it("emits one link per weather alias", () => {
       const links = build({ selectedWeather: WEATHER });
-      expect(keywordsOf(links).sort()).toEqual([...aliasesOf(weatherToChinese, WEATHER)].sort());
+      expect(keywordsOf(links).sort()).toEqual([...aliasesOf(hi3WeatherToChinese, WEATHER)].sort());
     });
 
     it("prefixes SSS to every boss alias when the SSS boss box is checked", () => {
       const links = build({ selectedBoss: BOSS, sssBoss: true });
-      const expected = aliasesOf(bossToChinese, BOSS).map((alias) => `SSS${alias}`);
+      const expected = aliasesOf(hi3BossToChinese, BOSS).map((alias) => `SSS${alias}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
@@ -156,16 +117,16 @@ describe("buildBiliLinks", () => {
 
   describe("cartesian product across dimensions", () => {
     it("emits one link for every combination of aliases", () => {
-      const bossAliases = aliasesOf(bossToChinese, BOSS).length;
-      const weatherAliases = aliasesOf(weatherToChinese, WEATHER).length;
+      // The product itself is combine()'s job; what this pins is that each HI3 dimension
+      // contributes all of its aliases rather than just the first.
+      const bossAliases = aliasesOf(hi3BossToChinese, BOSS).length;
+      const weatherAliases = aliasesOf(hi3WeatherToChinese, WEATHER).length;
       const links = build({ selectedBoss: BOSS, selectedWeather: WEATHER });
       expect(links).toHaveLength(bossAliases * weatherAliases);
-      // Every link is distinct — combinations, not repeats.
-      expect(new Set(links).size).toBe(links.length);
     });
 
     it("orders terms as modifiers, weather, boss, valkyries, companion, score", () => {
-      const modifier = firstKey(modifiersToChinese["Game Mode"].options);
+      const modifier = firstKey(hi3ModifiersToChinese["Game Mode"].options);
       const links = build({
         activeModifiers: [modifier],
         selectedWeather: WEATHER,
@@ -176,21 +137,19 @@ describe("buildBiliLinks", () => {
       });
       const terms = keywordOf(links[0]).split("+");
       expect(terms).toHaveLength(6);
-      expect(modifiersToChinese["Game Mode"].options[modifier]).toContain(terms[0]);
-      expect(aliasesOf(weatherToChinese, WEATHER)).toContain(terms[1]);
-      expect(aliasesOf(bossToChinese, BOSS)).toContain(terms[2]);
-      expect(valkToChinese.simple.options[SIMPLE_VALK]).toContain(terms[3]);
-      expect(companionToChinese.elf.options[ELF]).toContain(terms[4]);
+      expect(hi3ModifiersToChinese["Game Mode"].options[modifier]).toContain(terms[0]);
+      expect(aliasesOf(hi3WeatherToChinese, WEATHER)).toContain(terms[1]);
+      expect(aliasesOf(hi3BossToChinese, BOSS)).toContain(terms[2]);
+      expect(hi3ValkToChinese.simple.options[SIMPLE_VALK]).toContain(terms[3]);
+      expect(hi3CompanionToChinese.elf.options[ELF]).toContain(terms[4]);
       expect(terms[5]).toBe("40000");
     });
 
-    it("joins dimensions with + and leaves unselected ones out entirely", () => {
+    it("leaves unselected dimensions out entirely", () => {
       // Only boss and score are set, so exactly two terms — no empty separators.
       const links = build({ selectedBoss: BOSS, score: 40000 });
       for (const link of links) {
-        const terms = keywordOf(link).split("+");
-        expect(terms).toHaveLength(2);
-        expect(terms).not.toContain("");
+        expect(keywordOf(link).split("+")).toHaveLength(2);
       }
     });
   });
@@ -212,7 +171,7 @@ describe("buildBiliLinks", () => {
     it("concatenates rank + alias for a ranked valk", () => {
       const valk = ADVANCED2_VALKS[0];
       const links = build({ selectedValks: [valk], valkRanks: { [valk]: "S1" } });
-      const expected = valkToChinese.advanced2.options[valk].map((alias) => `S1${alias}`);
+      const expected = hi3ValkToChinese.advanced2.options[valk].map((alias) => `S1${alias}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
@@ -223,7 +182,7 @@ describe("buildBiliLinks", () => {
         valkRanks: { [valk]: "S1" },
         valkSynergies: { [valk]: "+1" },
       });
-      const expected = valkToChinese.advanced2.options[valk].map((alias) => `S1%2B1${alias}`);
+      const expected = hi3ValkToChinese.advanced2.options[valk].map((alias) => `S1%2B1${alias}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
       // A literal "+" would read as a term separator on Bilibili.
       for (const link of links) {
@@ -234,21 +193,21 @@ describe("buildBiliLinks", () => {
     it("emits one link per rank value when a rank label maps to several", () => {
       // SS0 carries two search variants ("SS" and "SS0").
       const valk = ADVANCED2_VALKS[0];
-      const rankValues = valkToChinese.advanced2.ranks["SS0"].length;
-      const aliases = valkToChinese.advanced2.options[valk].length;
+      const rankValues = hi3ValkToChinese.advanced2.ranks["SS0"].length;
+      const aliases = hi3ValkToChinese.advanced2.options[valk].length;
       const links = build({ selectedValks: [valk], valkRanks: { [valk]: "SS0" } });
       expect(links).toHaveLength(rankValues * aliases);
     });
 
     it("uses bare aliases for a valk whose group has no ranks", () => {
       const links = build({ selectedValks: [SIMPLE_VALK] });
-      expect(keywordsOf(links).sort()).toEqual([...valkToChinese.simple.options[SIMPLE_VALK]].sort());
+      expect(keywordsOf(links).sort()).toEqual([...hi3ValkToChinese.simple.options[SIMPLE_VALK]].sort());
     });
 
     it("keeps the selected valks in order, lead first", () => {
       const [first, second] = ADVANCED2_VALKS;
       const links = build({ selectedValks: [first, second] });
-      const leadAlias = valkToChinese.advanced2.options[first][0];
+      const leadAlias = hi3ValkToChinese.advanced2.options[first][0];
       // Valk tokens are concatenated with no separator, so the lead valk's alias
       // must appear at the start of the (single) valkyrie term.
       expect(links.some((link) => keywordOf(link).startsWith(leadAlias))).toBe(true);
@@ -256,12 +215,12 @@ describe("buildBiliLinks", () => {
 
     it("ignores a rank label the valk's group does not define", () => {
       const links = build({ selectedValks: [SIMPLE_VALK], valkRanks: { [SIMPLE_VALK]: "S3" } });
-      expect(keywordsOf(links).sort()).toEqual([...valkToChinese.simple.options[SIMPLE_VALK]].sort());
+      expect(keywordsOf(links).sort()).toEqual([...hi3ValkToChinese.simple.options[SIMPLE_VALK]].sort());
     });
 
     it("treats a team option as a normal alias source", () => {
       const links = build({ selectedValks: [TEAM_VALK] });
-      expect(keywordsOf(links).sort()).toEqual([...valkToChinese.team.options[TEAM_VALK]].sort());
+      expect(keywordsOf(links).sort()).toEqual([...hi3ValkToChinese.team.options[TEAM_VALK]].sort());
     });
   });
 
@@ -279,7 +238,7 @@ describe("buildBiliLinks", () => {
     it("prefixes the term ahead of the selected valks' aliases", () => {
       const valk = ADVANCED2_VALKS[0];
       const links = build({ selectedValks: [valk], allS0Plus1: true });
-      const expected = valkToChinese.advanced2.options[valk].map((alias) => `全S0%2B1${alias}`);
+      const expected = hi3ValkToChinese.advanced2.options[valk].map((alias) => `全S0%2B1${alias}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
@@ -309,48 +268,48 @@ describe("buildBiliLinks", () => {
   describe("companions", () => {
     it("uses bare aliases when no rank is picked", () => {
       const links = build({ selectedCompanion: ELF });
-      expect(keywordsOf(links).sort()).toEqual([...companionToChinese.elf.options[ELF]].sort());
+      expect(keywordsOf(links).sort()).toEqual([...hi3CompanionToChinese.elf.options[ELF]].sort());
     });
 
     it("prefixes each rank value onto each alias", () => {
-      const rank = firstKey(companionToChinese.elf.ranks);
+      const rank = firstKey(hi3CompanionToChinese.elf.ranks);
       const links = build({ selectedCompanion: ELF, companionRank: rank });
-      const expected = companionToChinese.elf.ranks[rank].flatMap((r) =>
-        companionToChinese.elf.options[ELF].map((alias) => `${r}${alias}`)
+      const expected = hi3CompanionToChinese.elf.ranks[rank].flatMap((r) =>
+        hi3CompanionToChinese.elf.options[ELF].map((alias) => `${r}${alias}`)
       );
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
     it("applies astral op ranks to astral op options", () => {
       const links = build({ selectedCompanion: ASTRAL_OP, companionRank: "SS" });
-      const expected = companionToChinese.astralop.options[ASTRAL_OP].map((a) => `SS${a}`);
+      const expected = hi3CompanionToChinese.astralop.options[ASTRAL_OP].map((a) => `SS${a}`);
       expect(keywordsOf(links).sort()).toEqual(expected.sort());
     });
 
     it("ignores a rank the companion's group does not define", () => {
       // Astral Op ranks (S/SS/SSS) do not apply to an ELF (star ratings).
       const links = build({ selectedCompanion: ELF, companionRank: "SSS" });
-      expect(keywordsOf(links).sort()).toEqual([...companionToChinese.elf.options[ELF]].sort());
+      expect(keywordsOf(links).sort()).toEqual([...hi3CompanionToChinese.elf.options[ELF]].sort());
     });
   });
 
   describe("modifiers", () => {
     it("puts a single modifier's alias first in the keyword", () => {
-      const modifier = firstKey(modifiersToChinese["Game Mode"].options);
+      const modifier = firstKey(hi3ModifiersToChinese["Game Mode"].options);
       const links = build({ activeModifiers: [modifier], selectedBoss: BOSS });
       for (const link of links) {
         const first = keywordOf(link).split("+")[0];
-        expect(modifiersToChinese["Game Mode"].options[modifier]).toContain(first);
+        expect(hi3ModifiersToChinese["Game Mode"].options[modifier]).toContain(first);
       }
     });
 
     it("joins several active modifiers into the leading term", () => {
-      const gameMode = firstKey(modifiersToChinese["Game Mode"].options);
-      const other = firstKey(modifiersToChinese["Other"].options);
+      const gameMode = firstKey(hi3ModifiersToChinese["Game Mode"].options);
+      const other = firstKey(hi3ModifiersToChinese["Other"].options);
       const links = build({ activeModifiers: [gameMode, other] });
       const perModifierAliases =
-        modifiersToChinese["Game Mode"].options[gameMode].length *
-        modifiersToChinese["Other"].options[other].length;
+        hi3ModifiersToChinese["Game Mode"].options[gameMode].length *
+        hi3ModifiersToChinese["Other"].options[other].length;
       expect(links).toHaveLength(perModifierAliases);
       for (const link of links) {
         expect(keywordOf(link).split("+")).toHaveLength(2);
@@ -360,58 +319,58 @@ describe("buildBiliLinks", () => {
     // Category order inside the keyword is Other, then Game Mode, then Difficulty Level —
     // deliberately not the data-file order, and not the order the boxes were ticked.
     it("orders modifier terms Other, Game Mode, Difficulty Level", () => {
-      const other = firstKey(modifiersToChinese["Other"].options);
-      const gameMode = firstKey(modifiersToChinese["Game Mode"].options);
-      const difficulty = firstKey(modifiersToChinese["Difficulty Level"].options);
+      const other = firstKey(hi3ModifiersToChinese["Other"].options);
+      const gameMode = firstKey(hi3ModifiersToChinese["Game Mode"].options);
+      const difficulty = firstKey(hi3ModifiersToChinese["Difficulty Level"].options);
       // Ticked in the opposite order to prove the sort, not the input, decides.
       const links = build({ activeModifiers: [difficulty, gameMode, other] });
       for (const link of links) {
         const terms = keywordOf(link).split("+");
         expect(terms).toHaveLength(3);
-        expect(modifiersToChinese["Other"].options[other]).toContain(terms[0]);
-        expect(modifiersToChinese["Game Mode"].options[gameMode]).toContain(terms[1]);
-        expect(modifiersToChinese["Difficulty Level"].options[difficulty]).toContain(terms[2]);
+        expect(hi3ModifiersToChinese["Other"].options[other]).toContain(terms[0]);
+        expect(hi3ModifiersToChinese["Game Mode"].options[gameMode]).toContain(terms[1]);
+        expect(hi3ModifiersToChinese["Difficulty Level"].options[difficulty]).toContain(terms[2]);
       }
     });
 
     it("puts Other ahead of Game Mode whichever order they arrive in", () => {
-      const other = firstKey(modifiersToChinese["Other"].options);
-      const gameMode = firstKey(modifiersToChinese["Game Mode"].options);
+      const other = firstKey(hi3ModifiersToChinese["Other"].options);
+      const gameMode = firstKey(hi3ModifiersToChinese["Game Mode"].options);
       const forwards = build({ activeModifiers: [other, gameMode] });
       const backwards = build({ activeModifiers: [gameMode, other] });
       expect(forwards).toEqual(backwards);
       for (const link of forwards) {
-        expect(modifiersToChinese["Other"].options[other]).toContain(keywordOf(link).split("+")[0]);
+        expect(hi3ModifiersToChinese["Other"].options[other]).toContain(keywordOf(link).split("+")[0]);
       }
     });
 
     it("keeps modifiers from one category in their given order", () => {
       // Array.sort is stable, so same-rank entries must not be reshuffled.
-      const [first, second] = Object.keys(modifiersToChinese["Other"].options);
+      const [first, second] = Object.keys(hi3ModifiersToChinese["Other"].options);
       if (!second) return;
       const links = build({ activeModifiers: [first, second] });
       for (const link of links) {
         const terms = keywordOf(link).split("+");
-        expect(modifiersToChinese["Other"].options[first]).toContain(terms[0]);
-        expect(modifiersToChinese["Other"].options[second]).toContain(terms[1]);
+        expect(hi3ModifiersToChinese["Other"].options[first]).toContain(terms[0]);
+        expect(hi3ModifiersToChinese["Other"].options[second]).toContain(terms[1]);
       }
     });
 
     it("expands modifiers with multiple aliases into separate links", () => {
-      const multi = Object.keys(modifiersToChinese["Game Mode"].options).find(
-        (name) => modifiersToChinese["Game Mode"].options[name].length > 1
+      const multi = Object.keys(hi3ModifiersToChinese["Game Mode"].options).find(
+        (name) => hi3ModifiersToChinese["Game Mode"].options[name].length > 1
       );
       // Only meaningful if the data still has a multi-alias modifier.
       if (!multi) return;
       const links = build({ activeModifiers: [multi] });
-      expect(links).toHaveLength(modifiersToChinese["Game Mode"].options[multi].length);
+      expect(links).toHaveLength(hi3ModifiersToChinese["Game Mode"].options[multi].length);
     });
   });
 
   describe("a fully populated selection", () => {
     it("assembles every dimension into each link", () => {
       const valk = ADVANCED2_VALKS[0];
-      const modifier = firstKey(modifiersToChinese["Game Mode"].options);
+      const modifier = firstKey(hi3ModifiersToChinese["Game Mode"].options);
       const links = build({
         activeModifiers: [modifier],
         selectedWeather: WEATHER,
@@ -421,7 +380,7 @@ describe("buildBiliLinks", () => {
         valkRanks: { [valk]: "S1" },
         valkSynergies: { [valk]: "+1" },
         selectedCompanion: ELF,
-        companionRank: firstKey(companionToChinese.elf.ranks),
+        companionRank: firstKey(hi3CompanionToChinese.elf.ranks),
         score: "40000 / 48000",
         dateRange: { begin: 1, end: 2 },
       });
@@ -439,21 +398,21 @@ describe("buildBiliLinks", () => {
 
 describe("option lists exposed to the UI", () => {
   it("lists every valk option across all groups", () => {
-    const expected = Object.values(valkToChinese).flatMap((g) => Object.keys(g.options));
+    const expected = Object.values(hi3ValkToChinese).flatMap((g) => Object.keys(g.options));
     expect([...valkOptions].sort()).toEqual(expected.sort());
   });
 
   it("lists every companion option across ELF and Astral Op", () => {
-    const expected = Object.values(companionToChinese).flatMap((g) => Object.keys(g.options));
+    const expected = Object.values(hi3CompanionToChinese).flatMap((g) => Object.keys(g.options));
     expect([...companionOptions].sort()).toEqual(expected.sort());
   });
 
   it("exposes each modifier category with its selection type", () => {
-    expect(modifierCategories.map((c) => c.category)).toEqual(Object.keys(modifiersToChinese));
+    expect(modifierCategories.map((c) => c.category)).toEqual(Object.keys(hi3ModifiersToChinese));
     for (const category of modifierCategories) {
       expect(["single-choice", "multiple-choice"]).toContain(category.type);
       expect(category.names).toEqual(
-        Object.keys((modifiersToChinese as any)[category.category].options)
+        Object.keys((hi3ModifiersToChinese as any)[category.category].options)
       );
     }
   });
@@ -466,14 +425,14 @@ describe("valkRanksFor / valkSynergiesFor", () => {
   });
 
   it("returns the group's rank labels for a ranked valk", () => {
-    expect(valkRanksFor(ADVANCED2_VALKS[0])).toEqual(Object.keys(valkToChinese.advanced2.ranks));
+    expect(valkRanksFor(ADVANCED2_VALKS[0])).toEqual(Object.keys(hi3ValkToChinese.advanced2.ranks));
   });
 
   it("returns synergy labels only for the group that defines them", () => {
     expect(valkSynergiesFor(ADVANCED2_VALKS[0])).toEqual(
-      Object.keys(valkToChinese.advanced2.synergies)
+      Object.keys(hi3ValkToChinese.advanced2.synergies)
     );
-    expect(valkSynergiesFor(firstKey(valkToChinese.basic.options))).toEqual([]);
+    expect(valkSynergiesFor(firstKey(hi3ValkToChinese.basic.options))).toEqual([]);
   });
 
   it("returns empty for null or unknown names", () => {
@@ -486,11 +445,11 @@ describe("valkRanksFor / valkSynergiesFor", () => {
 
 describe("companionRanksFor", () => {
   it("returns star ratings for an ELF", () => {
-    expect(companionRanksFor(ELF)).toEqual(Object.keys(companionToChinese.elf.ranks));
+    expect(companionRanksFor(ELF)).toEqual(Object.keys(hi3CompanionToChinese.elf.ranks));
   });
 
   it("returns S/SS/SSS for an Astral Op", () => {
-    expect(companionRanksFor(ASTRAL_OP)).toEqual(Object.keys(companionToChinese.astralop.ranks));
+    expect(companionRanksFor(ASTRAL_OP)).toEqual(Object.keys(hi3CompanionToChinese.astralop.ranks));
   });
 
   it("returns empty for null or unknown options", () => {
@@ -501,7 +460,7 @@ describe("companionRanksFor", () => {
 
 describe("isTeamValk", () => {
   it("identifies options in the team group", () => {
-    for (const name of Object.keys(valkToChinese.team.options)) {
+    for (const name of Object.keys(hi3ValkToChinese.team.options)) {
       expect(isTeamValk(name)).toBe(true);
     }
   });

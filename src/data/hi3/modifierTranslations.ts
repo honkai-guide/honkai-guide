@@ -1,4 +1,4 @@
-export const modifiersToChinese = {
+export const hi3ModifiersToChinese = {
   "Game Mode": {
     "type": "single-choice",
     "options": {

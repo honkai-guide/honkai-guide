@@ -1,4 +1,4 @@
-export const valkToChinese = {
+export const hi3ValkToChinese = {
   "team": { // special term for a team of valkyries, treated as a selection of 3 valks
     "ranks": {},
     "options": {
