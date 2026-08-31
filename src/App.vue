@@ -20,7 +20,13 @@
     <v-navigation-drawer v-model="drawer">
       <v-list density="compact">
         <v-list-item to="/hi3" prepend-icon="mdi-magnify" title="HI3 Bilibili search"></v-list-item>
+        <!--
+          The AKE page is unreleased, so it is kept out of the drawer for now. The /ake route
+          itself still resolves, so the page can be reached directly for testing — uncomment
+          this when it ships.
+
         <v-list-item to="/ake" prepend-icon="mdi-magnify" title="AKE Bilibili search"></v-list-item>
+        -->
       </v-list>
     </v-navigation-drawer>
 
