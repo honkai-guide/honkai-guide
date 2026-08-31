@@ -42,9 +42,9 @@ describe("operator selection rules", () => {
     expect(vm.selectedOperators).toEqual(two);
   });
 
-  // The cap test needs one more operator than the cap allows. The data currently has
-  // exactly five, so this guard fails loudly if that ever shrinks, rather than letting
-  // the case above silently stop testing the cap.
+  // The cap test needs one more operator than the cap allows. Slicing a shorter list would
+  // silently return a selection that never exceeds the cap, so the case above would pass
+  // while testing nothing; this guard fails loudly instead.
   it("found enough real operators to exceed the cap", () => {
     expect(overCap).toHaveLength(MAX_OPERATORS + 1);
   });

@@ -6,7 +6,6 @@ import { biliBaseUrl, buildKeywordLinks, combine, displayLink } from "@/util/bil
 // change, and a failure here should point at the URL convention, not at HI3 or AKE.
 // Per-game wiring (which dimensions, in what order) is asserted in tests/<game>/.
 
-const ORDER = "&order=pubdate";
 const DESKTOP = "https://search.bilibili.com/all?keyword=";
 const MOBILE = "https://m.bilibili.com/search?keyword=";
 
@@ -18,10 +17,9 @@ const setUserAgent = (ua: string) => {
 beforeEach(() => setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"));
 afterEach(() => delete (globalThis as any).window);
 
-// The search terms of a link: everything between "keyword=" and the query params.
-// A link carries either the sort param or the date-range params, never both.
-const keywordOf = (link: string) =>
-  link.split("keyword=")[1].split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
+// The search terms of a link: everything between "keyword=" and the date-range params,
+// which are the only params a link can carry.
+const keywordOf = (link: string) => link.split("keyword=")[1].split("&pubtime_begin_s=")[0];
 
 describe("combine", () => {
   it("produces the cartesian product of every dimension", () => {
@@ -66,18 +64,22 @@ describe("buildKeywordLinks", () => {
   });
 
   describe("query params", () => {
-    it("sorts by pubdate when there is no date filter", () => {
-      const links = buildKeywordLinks([["boss"]]);
-      expect(links).toEqual([`${DESKTOP}boss${ORDER}`]);
-      // First param after the keyword, so it reliably marks where the terms end.
-      expect(links[0].split("&")[1]).toBe("order=pubdate");
+    it("carries no params at all when there is no date filter", () => {
+      expect(buildKeywordLinks([["boss"]])).toEqual([`${DESKTOP}boss`]);
     });
 
-    it("uses the publish-time range instead of the sort param when a date range is set", () => {
+    it("never emits a sort param", () => {
+      // &order=pubdate does not reorder Bilibili's results so much as gut them, so it is
+      // gone for good — with and without a date range.
+      const withRange = buildKeywordLinks([["boss"]], { dateRange: { begin: 100, end: 200 } });
+      for (const link of [...buildKeywordLinks([["boss"]]), ...withRange]) {
+        expect(link).not.toContain("order=");
+      }
+    });
+
+    it("appends the publish-time range when one is set", () => {
       const links = buildKeywordLinks([["boss"]], { dateRange: { begin: 100, end: 200 } });
       for (const link of links) {
-        // Bilibili returns poor results when pubtime_* is combined with order=pubdate.
-        expect(link).not.toContain(ORDER);
         expect(link.endsWith("&pubtime_begin_s=100&pubtime_end_s=200")).toBe(true);
         // First param after the keyword, so it reliably marks where the terms end.
         expect(link.split("&")[1]).toBe("pubtime_begin_s=100");
@@ -92,9 +94,7 @@ describe("buildKeywordLinks", () => {
     });
 
     it("treats an explicitly null date range as no filter", () => {
-      expect(buildKeywordLinks([["boss"]], { dateRange: null })).toEqual([
-        `${DESKTOP}boss${ORDER}`,
-      ]);
+      expect(buildKeywordLinks([["boss"]], { dateRange: null })).toEqual([`${DESKTOP}boss`]);
     });
   });
 
@@ -145,38 +145,33 @@ describe("buildKeywordLinks", () => {
 });
 
 describe("displayLink", () => {
-  it("shows only the search terms, dropping host and params", () => {
-    expect(displayLink("https://search.bilibili.com/all?keyword=终&order=pubdate")).toBe("终");
+  it("shows only the search terms, dropping the host", () => {
+    expect(displayLink("https://search.bilibili.com/all?keyword=终")).toBe("终");
   });
 
-  it("drops the date-range params on a date-filtered link, which has no sort param", () => {
+  it("drops the date-range params on a date-filtered link", () => {
     const link = "https://search.bilibili.com/all?keyword=终&pubtime_begin_s=1&pubtime_end_s=2";
     expect(displayLink(link)).toBe("终");
   });
 
   it("renders term separators as spaces", () => {
-    expect(displayLink("https://search.bilibili.com/all?keyword=红莲+终+40000&order=pubdate")).toBe(
+    expect(displayLink("https://search.bilibili.com/all?keyword=红莲+终+40000")).toBe(
       "红莲 终 40000"
     );
   });
 
   it("decodes %2B back into a literal + for display", () => {
-    expect(displayLink("https://search.bilibili.com/all?keyword=全S0%2B1终&order=pubdate")).toBe(
-      "全S0+1终"
-    );
+    expect(displayLink("https://search.bilibili.com/all?keyword=全S0%2B1终")).toBe("全S0+1终");
   });
 
   it("decodes a rank synergy's encoded + too", () => {
-    expect(displayLink("https://search.bilibili.com/all?keyword=S1%2B1终&order=pubdate")).toBe(
-      "S1+1终"
-    );
+    expect(displayLink("https://search.bilibili.com/all?keyword=S1%2B1终")).toBe("S1+1终");
   });
 
   it("does not truncate a term containing an ampersand", () => {
-    // The cut matches the whole &order=pubdate / &pubtime_begin_s= literal, not a bare "&".
-    expect(displayLink("https://search.bilibili.com/all?keyword=A&B+boss&order=pubdate")).toBe(
-      "A&B boss"
-    );
+    // The cut matches the whole &pubtime_begin_s= literal, not a bare "&". Without a date
+    // filter there is nothing after the keyword at all, so the term survives untouched.
+    expect(displayLink("https://search.bilibili.com/all?keyword=A&B+boss")).toBe("A&B boss");
     expect(displayLink("https://search.bilibili.com/all?keyword=A&B+boss&pubtime_begin_s=1")).toBe(
       "A&B boss"
     );
@@ -187,7 +182,7 @@ describe("displayLink", () => {
   });
 
   it("round-trips the mobile host as well", () => {
-    expect(displayLink("https://m.bilibili.com/search?keyword=终&order=pubdate")).toBe("终");
+    expect(displayLink("https://m.bilibili.com/search?keyword=终")).toBe("终");
   });
 
   it("round-trips a link this module built", () => {

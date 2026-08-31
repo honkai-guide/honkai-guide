@@ -33,7 +33,7 @@
           <v-autocomplete
             v-model="selectedOperators"
             v-model:search="operatorInput"
-            hint="Order matters! Choose the lead operator first. Up to 4 can be selected."
+            hint="Some nicknames don't search well on their own. You can use their full name instead, or provide a full team for better context."
             autofocus
             multiple
             auto-select-first

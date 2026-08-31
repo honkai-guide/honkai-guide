@@ -32,8 +32,6 @@ const ASTRAL_OP = firstKey(hi3CompanionToChinese.astralop.options);
 
 const aliasesOf = (obj: Record<string, string[]>, key: string) => obj[key];
 
-const ORDER = "&order=pubdate";
-
 // Nothing selected. Individual tests override only the dimension under test.
 const EMPTY: BiliSearchInput = {
   selectedWeather: null,
@@ -53,10 +51,9 @@ const EMPTY: BiliSearchInput = {
 const build = (overrides: Partial<BiliSearchInput> = {}) =>
   buildBiliLinks({ ...EMPTY, ...overrides });
 
-// The search terms of a link: everything between "keyword=" and the query params.
-// A link carries either the sort param or the date-range params, never both.
-const keywordOf = (link: string) =>
-  link.split("keyword=")[1].split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
+// The search terms of a link: everything between "keyword=" and the date-range params,
+// which are the only params a link can carry.
+const keywordOf = (link: string) => link.split("keyword=")[1].split("&pubtime_begin_s=")[0];
 const keywordsOf = (links: string[]) => links.map(keywordOf);
 
 // buildBiliLinks reads navigator.userAgent to choose the desktop or mobile host.
@@ -75,7 +72,7 @@ describe("buildBiliLinks", () => {
     });
   });
 
-  // The URL machinery itself (params, host, sorting, + joining) is covered once in
+  // The URL machinery itself (params, host, + joining) is covered once in
   // tests/biliUrl.spec.ts. What matters here is that this page hands it the right
   // options — the wiring the two silently lost in a rebase once.
   describe("wiring into buildKeywordLinks", () => {
@@ -84,15 +81,14 @@ describe("buildBiliLinks", () => {
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
         expect(link.endsWith("&pubtime_begin_s=1754006400&pubtime_end_s=1754265599")).toBe(true);
-        expect(link).not.toContain(ORDER);
       }
     });
 
-    it("sorts by pubdate when the page passes no date range", () => {
+    it("emits a bare keyword URL when the page passes no date range", () => {
       const links = build({ selectedBoss: BOSS });
       expect(links.length).toBeGreaterThan(0);
       for (const link of links) {
-        expect(link.endsWith(ORDER)).toBe(true);
+        expect(link).not.toContain("&");
       }
     });
   });

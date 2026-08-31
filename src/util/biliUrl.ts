@@ -50,14 +50,13 @@ export function buildKeywordLinks(
 ): string[] {
   const baseUrl = biliBaseUrl();
 
-  // Bilibili returns poor results when a publish-time range is combined with
-  // &order=pubdate, so the two are mutually exclusive: with a date range we rely on the
-  // range alone (it already narrows things down enough that sorting adds little), and
-  // without one we sort newest-first. Either way the params start with a fixed literal
-  // (&pubtime_begin_s= or &order=pubdate), which is what displayLink below cuts on.
+  // No sort param. Bilibili's &order=pubdate is broken: it does not reorder the result set
+  // so much as gut it — one search that returns 28 pages unsorted came back with 8 videos
+  // with pubdate on. Results therefore come back in Bilibili's default relevance order,
+  // and the only param a link can carry is the optional publish-time range.
   const suffix = dateRange
     ? `&pubtime_begin_s=${dateRange.begin}&pubtime_end_s=${dateRange.end}`
-    : "&order=pubdate";
+    : "";
 
   return Array.from(combine(dimensions))
     .map((terms) => terms.filter((term) => term !== ""))
@@ -74,10 +73,10 @@ export function buildKeywordLinks(
 // and so the cut rule below cannot drift from the suffix built above.
 export function displayLink(link: string): string {
   const afterKeyword = link.split("keyword=")[1] ?? link;
-  // A link carries either &order=pubdate (no date filter) or &pubtime_begin_s=… (date
-  // filter, which drops the sort), never both, and whichever it is leads the query params.
-  // Cutting at the first of those two literals drops them and anything after. Matching the
-  // whole literal (not a bare "&") means a search term containing "&" won't truncate it.
-  const terms = afterKeyword.split(/&(?:order=pubdate|pubtime_begin_s=)/)[0];
+  // &pubtime_begin_s= is now the only param a link can carry, and it leads what follows, so
+  // cutting there drops the date range and anything after it. A link without a date filter
+  // has no params at all, and the split simply finds nothing to cut. Matching that whole
+  // literal (not a bare "&") means a search term containing "&" won't truncate the label.
+  const terms = afterKeyword.split("&pubtime_begin_s=")[0];
   return terms.replaceAll("+", " ").replaceAll("%2B", "+");
 }
