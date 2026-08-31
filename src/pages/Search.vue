@@ -208,8 +208,6 @@
             :items="scores"
           ></v-combobox>
         </v-form>
-
-        <Changelog></Changelog>
       </v-col>
 
       <!-- Right: sticky results panel so links stay visible while the form is edited. -->
@@ -321,10 +319,6 @@ $panel-gap: 16px;
   height: 80px;
 }
 
-.changelog {
-  padding-left: 1.5rem;
-}
-
 // The tonal alert variant is `color: inherit` with a `currentColor` underlay, so this
 // one declaration tints both the text and the background wash.
 //
@@ -417,7 +411,6 @@ import {
   isMobile,
   modifierCategories,
 } from "@/util/searchLinks";
-import Changelog from "@/components/Changelog.vue";
 import aijGif from "@/assets/aij2.gif";
 import brnGif from "@/assets/brn.gif";
 
@@ -436,7 +429,6 @@ const scoresByMode: Record<string, (number | string)[]> = {
 };
 
 export default defineComponent({
-  components: { Changelog },
   data: function () {
     return {
       selectedBoss: [] as string[],
