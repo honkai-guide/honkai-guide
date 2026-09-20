@@ -82,7 +82,7 @@
               hide-details
               class="flex-grow-0"
               @update:model-value="$event && (individualRanks = false)"
-              label="All S0+1"
+              label="Use &quot;all S0+1&quot; search term"
             ></v-checkbox>
             <v-checkbox
               v-model="individualRanks"
