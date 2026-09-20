@@ -163,6 +163,7 @@ export const hi3ValkToChinese = {
       "Miss Espionage (*ME, Rita)": ["丽"],
       "Xentinel Dawnbearing Crescent (*XDC, *DC, Mei)": ["芽"],
       "Wings of Panacea (*WP, Seele)": ["希"],
+      "Herrscher of Time (tentative name) (*HoTi, *HTi, Dreamseeker)": ["寻"],
     }
   },
 };
