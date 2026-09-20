@@ -73,4 +73,5 @@ export const hi3BossToChinese = {
   "Meteoroid: Paros": ["帕罗斯"],
   "Marut (IMG Pig)": ["虚数猪", "摩录多"],
   "Invincible Auspicious Drum: Rice Cake": ["年糕"],
+  "Husk Trio (tentative name)": ["虚数神骸"],
 };

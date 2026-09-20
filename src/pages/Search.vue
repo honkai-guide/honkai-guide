@@ -422,10 +422,12 @@ const modifierGroups = modifierCategories.map((cat) => ({
 
 // Score dropdown values per mode. SSS combines the SSS and SSS +20% thresholds
 // into one "sss / sssUp" entry that expands to two search terms when used.
+// Key order is the button order (scoreModes reads Object.keys), so SSS comes
+// first: it is far and away the more frequently used of the two.
 const sssUpScores = generateScores("SSS +20%");
 const scoresByMode: Record<string, (number | string)[]> = {
-  SS: generateScores("SS"),
   SSS: generateScores("SSS").map((s, i) => `${s} / ${sssUpScores[i]}`),
+  SS: generateScores("SS"),
 };
 
 export default defineComponent({
@@ -447,7 +449,7 @@ export default defineComponent({
       selectedWeather: [] as string[],
       weatherInput: null,
       score: null,
-      scoreMode: "SS",
+      scoreMode: "SSS",
       scoreModes: Object.keys(scoresByMode),
       bosses: Object.keys(hi3BossToChinese).sort((a, b) => a.localeCompare(b)),
       valks: [...valkOptions].sort((a, b) => a.localeCompare(b)),

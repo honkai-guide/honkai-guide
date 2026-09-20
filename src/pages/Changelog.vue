@@ -2,7 +2,7 @@
   <v-container fluid>
     <h1>Changelog</h1>
     <ul class="changelog">
-      <li>2026/09/19 - Added Herrscher of Time (tentative name)</li>
+      <li>2026/09/19 - Added Herrscher of Time (tentative name) and SSS Husk trio boss</li>
       <li>2026/08/29 - Happy early 10th Anniversary Honkai Impact 3rd.<br>
         - Added Senadina Astral Op<br>
         - Added Klein ELF<br>
