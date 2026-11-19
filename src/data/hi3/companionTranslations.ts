@@ -29,6 +29,7 @@ export const hi3CompanionToChinese = {
       "Chenxue": ["晨雪"],
       "Bailu Youyun (*YY)": ["游云"],
       "Senadina": ["希娜"],
+      "Vita": ["薇塔"],
     }
   }
 };
