@@ -2,7 +2,7 @@
   <v-container fluid>
     <h1>Changelog</h1>
     <ul class="changelog">
-      <li>2026/11/19 - Added Ranged and Fortified weather, added Vita Astral Op</li>
+      <li>2026/11/19 - Added new weathers, added Vita Astral Op</li>
       <li>2026/10/26 - Added EN name for SSS Husk: Pluralism</li>
       <li>2026/09/19 - Added Herrscher of Time (tentative name) and SSS Husk trio boss</li>
       <li>2026/08/29 - Happy early 10th Anniversary Honkai Impact 3rd.<br>
